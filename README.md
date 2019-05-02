@@ -1,11 +1,14 @@
 # Scuttle
 
+/ˈskədl/
+
+
 <img src="sctl.svg" width="150" height="150" alt="sctl - pronounced scuttle" />
 
 
 ## Usage
 
-Scuttle aims to help you prevent security breaches by keeping secrets in your
+Scuttle aims to help you prevent security breaches by keeping secrets out of
 SCM in plain text. If you operate on Google Cloud, you don't have a lot of
 options available to you out of the gate for managing secrets.
 
@@ -17,6 +20,18 @@ text that is decryptable w/ an IAM user that has the appropriate permissions.
 
 ```
 TBD
+```
+
+### Configuration
+
+Configuration consists of 2 steps:
+
+- set your default google cloud application credentials
+- set the default KMS key for sctl to use
+
+```
+$ gcloud auth application-default login
+$ export SCTL_KEY=projects/my-project/locations/us/keyRings/operations-keyring/cryptoKeys/operations
 ```
 
 ### Manage Secrets
@@ -35,6 +50,7 @@ $ cat .scuttle.json
   "created": "2019-05-01T19:08:58.959335955-05:00"
  }
 ]
+# sctl run helmfile diff
 ```
 
 ## Acknowledgements
