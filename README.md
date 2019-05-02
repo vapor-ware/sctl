@@ -5,9 +5,9 @@
 
 ## Usage
 
-Scuttle aims to help you keep from creating security breaches by keeping secrets
-in your SCM in plain text. If you operate on Google Cloud, you don't have a lot
-of options available to you out of the gate for managing secrets.
+Scuttle aims to help you prevent security breaches by keeping secrets in your
+SCM in plain text. If you operate on Google Cloud, you don't have a lot of
+options available to you out of the gate for managing secrets.
 
 Scuttle uses KMS keys, and IAM policy to enforce the level of trust you need
 at your trust boundaries. No plain text is stored in the repository, only cipher
