@@ -1,16 +1,18 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/google/shlex"
 	"github.com/urfave/cli"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"sort"
-
 	"strings"
 	"time"
 
@@ -125,11 +127,34 @@ func decryptSymmetric(keyName string, ciphertext []byte) ([]byte, error) {
 	return resp.Plaintext, nil
 }
 
+func userInput() []byte {
+	fmt.Println("Enter the data you want to encrypt. END with CTRL+D")
+	rdr := bufio.NewReader(os.Stdin)
+	var lines []byte
+	for {
+		line, err := rdr.ReadBytes('\n')
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal("Error on input: %s", err)
+		}
+
+		line = bytes.Trim(line, "\n")
+
+		// append scanned input to the array
+		lines = append(lines, line...)
+
+	}
+	fmt.Printf("--> %s", lines)
+	return lines
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.1.4"
+	app.Version = "0.3.2"
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
@@ -150,12 +175,27 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				if len(c.Args()) <= 1 {
-					log.Fatal("Usage: sctl add KEY VALUE")
-					return nil
+
+				var plaintext []byte
+				// disallow empty key data
+				if c.Args().First() == "" {
+					log.Fatal("Usage: sctl add SECRET_ALIAS")
+				}
+
+				// Determine if we have data available on STDIN
+				stat, _ := os.Stdin.Stat()
+				if (stat.Mode() & os.ModeCharDevice) == 0 {
+					// we presume data is being piped to stdin
+					plaintext, _ = ioutil.ReadAll(os.Stdin)
+				} else {
+					// we're at a terminal. either first arg or prompt
+					if len(c.Args()) > 1 {
+						plaintext = []byte(c.Args()[1])
+					} else {
+						plaintext = userInput()
+					}
 				}
 				secret_name := c.Args().First()
-				plaintext := []byte(c.Args()[1])
 				cypher, err := encryptSymmetric(c.String("key"), plaintext)
 				if err != nil {
 					log.Fatal(err)
