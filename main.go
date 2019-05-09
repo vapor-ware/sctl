@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"log"
 	"os"
 	"sort"
-
 	"strings"
 	"time"
 
@@ -125,6 +125,33 @@ func decryptSymmetric(keyName string, ciphertext []byte) ([]byte, error) {
 	return resp.Plaintext, nil
 }
 
+func userInput() []byte {
+	fmt.Println("Enter the data or filepath you want to encrypt. END with CTRL+] on a line by itself")
+	scn := bufio.NewScanner(os.Stdin)
+	var lines []byte
+	for {
+
+		for scn.Scan() {
+			line := scn.Bytes()
+			if line == 0 {
+				break
+			}
+			// append scanned input to the array
+			lines = append(lines, line...)
+		}
+
+		if err := scn.Err(); err != nil {
+			log.Fatal(err)
+			break
+		}
+		if len(lines) == 0 {
+			break
+		}
+	}
+	fmt.Printf("--> %s", lines)
+	return lines
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
@@ -150,12 +177,27 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				if len(c.Args()) <= 1 {
-					log.Fatal("Usage: sctl add KEY VALUE")
-					return nil
+
+				var plaintext []byte
+				// disallow empty key data
+				if c.Args().First() == "" {
+					log.Fatal("Usage: sctl add SECRET_ALIAS")
+				}
+
+				// Determine if we have data available on STDIN
+				stat, _ := os.Stdin.Stat()
+				if (stat.Mode() & os.ModeCharDevice) == 0 {
+					// we presume data is being piped to stdin
+					plaintext, _ = ioutil.ReadAll(os.Stdin)
+				} else {
+					// we're at a terminal. either first arg or prompt
+					if len(c.Args()) > 1 {
+						plaintext = []byte(c.Args()[1])
+					} else {
+						plaintext = userInput()
+					}
 				}
 				secret_name := c.Args().First()
-				plaintext := []byte(c.Args()[1])
 				cypher, err := encryptSymmetric(c.String("key"), plaintext)
 				if err != nil {
 					log.Fatal(err)
