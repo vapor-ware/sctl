@@ -2,11 +2,13 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/google/shlex"
 	"github.com/urfave/cli"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -126,27 +128,23 @@ func decryptSymmetric(keyName string, ciphertext []byte) ([]byte, error) {
 }
 
 func userInput() []byte {
-	fmt.Println("Enter the data or filepath you want to encrypt. END with CTRL+] on a line by itself")
-	scn := bufio.NewScanner(os.Stdin)
+	fmt.Println("Enter the data you want to encrypt. END with CTRL+D")
+	rdr := bufio.NewReader(os.Stdin)
 	var lines []byte
 	for {
-
-		for scn.Scan() {
-			line := scn.Bytes()
-			if line == 0 {
-				break
-			}
-			// append scanned input to the array
-			lines = append(lines, line...)
-		}
-
-		if err := scn.Err(); err != nil {
-			log.Fatal(err)
+		line, err := rdr.ReadBytes('\n')
+		if err == io.EOF {
 			break
 		}
-		if len(lines) == 0 {
-			break
+		if err != nil {
+			log.Fatal("Error on input: %s", err)
 		}
+
+		line = bytes.Trim(line, "\n")
+
+		// append scanned input to the array
+		lines = append(lines, line...)
+
 	}
 	fmt.Printf("--> %s", lines)
 	return lines
@@ -156,7 +154,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.1.4"
+	app.Version = "0.3.2"
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
