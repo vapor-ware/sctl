@@ -154,7 +154,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.3.2"
+	app.Version = "0.3.3"
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
@@ -259,7 +259,7 @@ func main() {
 					// Decrypt the raw encrypted secret w/ kms
 					cypher, _ := decryptSymmetric(c.String("key"), decoded)
 					// Format the decrypted data for ENV consumption
-					skrt := fmt.Sprintf("%s=%s", secret.Name, cypher)
+					skrt := fmt.Sprintf("%s=\"%s\"", secret.Name, cypher)
 					// Append it to the command exec environment
 					cmd.Env = append(cmd.Env, skrt)
 				}
