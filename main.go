@@ -154,7 +154,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.3.3"
+	app.Version = "0.3.4"
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
@@ -255,9 +255,15 @@ func main() {
 				secrets = readSecrets()
 				for _, secret := range secrets {
 					// uncan the base64
-					decoded, _ := b64.StdEncoding.DecodeString(secret.Cyphertext)
+					decoded, err := b64.StdEncoding.DecodeString(secret.Cyphertext)
+					if err != nil {
+						log.Fatal(err)
+					}
 					// Decrypt the raw encrypted secret w/ kms
-					cypher, _ := decryptSymmetric(c.String("key"), decoded)
+					cypher, err := decryptSymmetric(c.String("key"), decoded)
+					if err != nil {
+						log.Fatal(err)
+					}
 					// Format the decrypted data for ENV consumption
 					skrt := fmt.Sprintf("%s=\"%s\"", secret.Name, cypher)
 					// Append it to the command exec environment
