@@ -151,11 +151,19 @@ func userInput() []byte {
 	return lines
 }
 
+func checkEnv(key string) bool {
+	value := os.Getenv(key)
+	if len(value) == 0 {
+		return false
+	}
+	return true
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.3.5"
+	app.Version = "0.4.0"
 
 	app.Commands = []cli.Command{
 		{
@@ -169,7 +177,10 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-
+				// Determine if the app is configured
+				if !checkEnv("SCTL_KEY") {
+					log.Fatal("Missing Env configuration: SCTL_KEY")
+				}
 				var plaintext []byte
 				// disallow empty key data
 				if c.Args().First() == "" {
@@ -188,6 +199,9 @@ func main() {
 						plaintext = []byte(c.Args()[1])
 					} else {
 						plaintext = userInput()
+						if len(plaintext) == 0 {
+							log.Fatal("Empty input detected. Aborting")
+						}
 					}
 				}
 				secret_name := c.Args().First()
@@ -242,6 +256,10 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
+				if !checkEnv("SCTL_KEY") {
+					log.Fatal("Missing Env configuration: SCTL_KEY")
+				}
+
 				var secrets []Secret
 
 				cmd := exec.Command(c.Args().First())
