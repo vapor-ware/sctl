@@ -35,7 +35,7 @@ func addSecret(to_add Secret) {
 	var secrets = readSecrets()
 	for index, element := range secrets {
 		if element.Name == to_add.Name {
-			log.Printf("Removing entry %s", element.Name)
+			log.Printf("Rotating entry %s", element.Name)
 			secrets[index] = secrets[len(secrets)-1] // copy last element to index i
 			secrets[len(secrets)-1] = Secret{}       // erase last element (zero value)
 			secrets = secrets[:len(secrets)-1]       // truncate slice
@@ -128,7 +128,9 @@ func decryptSymmetric(keyName string, ciphertext []byte) ([]byte, error) {
 }
 
 func userInput() []byte {
-	fmt.Println("Enter the data you want to encrypt. END with CTRL+D")
+	// Read STDIN (keyboard, interactive) until the user sends a manual EOF
+	// with CTRL+D on WIN keyboards, CMD+D on mac.
+	fmt.Println("Enter the data you want to encrypt. END with CTRL+D or CMD+D")
 	rdr := bufio.NewReader(os.Stdin)
 	var lines []byte
 	for {
@@ -146,7 +148,6 @@ func userInput() []byte {
 		lines = append(lines, line...)
 
 	}
-	fmt.Printf("--> %s", lines)
 	return lines
 }
 
@@ -154,14 +155,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.3.4"
-
-	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "debug",
-			Usage: "Enable debug messages",
-		},
-	}
+	app.Version = "0.3.5"
 
 	app.Commands = []cli.Command{
 		{
@@ -188,7 +182,8 @@ func main() {
 					// we presume data is being piped to stdin
 					plaintext, _ = ioutil.ReadAll(os.Stdin)
 				} else {
-					// we're at a terminal. either first arg or prompt
+					// we're at a terminal. data is either arg after
+					// alias or prompt the user for data.
 					if len(c.Args()) > 1 {
 						plaintext = []byte(c.Args()[1])
 					} else {
