@@ -163,7 +163,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.4.0"
+	app.Version = "0.4.1"
 
 	app.Commands = []cli.Command{
 		{
@@ -191,7 +191,11 @@ func main() {
 				stat, _ := os.Stdin.Stat()
 				if (stat.Mode() & os.ModeCharDevice) == 0 {
 					// we presume data is being piped to stdin
-					plaintext, _ = ioutil.ReadAll(os.Stdin)
+					raw_input, err := ioutil.ReadAll(os.Stdin)
+					if err != nil {
+						log.Fatal(err)
+					}
+					plaintext = bytes.Trim(raw_input, "\n")
 				} else {
 					// we're at a terminal. data is either arg after
 					// alias or prompt the user for data.
