@@ -1,2 +1,3 @@
 sctl
-
+vendor/**
+dist/
