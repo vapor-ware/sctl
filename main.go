@@ -163,7 +163,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.4.1"
+	app.Version = "0.5.0"
 
 	app.Commands = []cli.Command{
 		{
@@ -220,6 +220,55 @@ func main() {
 					Created:    time.Now(),
 				}
 				addSecret(to_add)
+				return nil
+			},
+		},
+		{
+			Name:  "slack",
+			Usage: "Encode/Decode a secret for copy/paste",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:   "key",
+					EnvVar: "SCTL_KEY",
+					Usage:  "GCloud KMS Key URI",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				// if any args present, presume decrypt
+				if len(c.Args()) >= 1 {
+					decoded, err := b64.StdEncoding.DecodeString(c.Args().First())
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					cypher, err := decryptSymmetric(c.String("key"), decoded)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					fmt.Println(string(cypher))
+					return nil
+				}
+
+				plaintext := userInput()
+				if len(plaintext) == 0 {
+					log.Fatal("Empty input detected. Aborting")
+				}
+
+				cypher, err := encryptSymmetric(c.String("key"), plaintext)
+				if err != nil {
+					log.Fatal(err)
+				}
+				encoded := b64.StdEncoding.EncodeToString(cypher)
+
+				fmt.Println("\n")
+				fmt.Println("Hello, I've shared some data with you with sctl! https://github.com/vapor-ware/sctl")
+				fmt.Println("Once installed, run the following commands to view this sensitive information")
+				fmt.Println("\n")
+				fmt.Println("```")
+				cmd := fmt.Sprintf("sctl slack --key=%s %s", c.String("key"), encoded)
+				fmt.Println(cmd)
+				fmt.Println("```")
 				return nil
 			},
 		},
