@@ -163,7 +163,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.5.0"
+	app.Version = "0.5.1"
 
 	app.Commands = []cli.Command{
 		{
@@ -224,7 +224,7 @@ func main() {
 			},
 		},
 		{
-			Name:  "slack",
+			Name:  "send",
 			Usage: "Encode/Decode a secret for copy/paste",
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -266,7 +266,7 @@ func main() {
 				fmt.Println("Once installed, run the following commands to view this sensitive information")
 				fmt.Println("\n")
 				fmt.Println("```")
-				cmd := fmt.Sprintf("sctl slack --key=%s %s", c.String("key"), encoded)
+				cmd := fmt.Sprintf("sctl send --key=%s %s", c.String("key"), encoded)
 				fmt.Println(cmd)
 				fmt.Println("```")
 				return nil
