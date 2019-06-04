@@ -163,7 +163,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.5.1"
+	app.Version = "0.6.0"
 
 	app.Commands = []cli.Command{
 		{
@@ -234,21 +234,6 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				// if any args present, presume decrypt
-				if len(c.Args()) >= 1 {
-					decoded, err := b64.StdEncoding.DecodeString(c.Args().First())
-					if err != nil {
-						log.Fatal(err)
-					}
-
-					cypher, err := decryptSymmetric(c.String("key"), decoded)
-					if err != nil {
-						log.Fatal(err)
-					}
-
-					fmt.Println(string(cypher))
-					return nil
-				}
 
 				plaintext := userInput()
 				if len(plaintext) == 0 {
@@ -266,9 +251,36 @@ func main() {
 				fmt.Println("Once installed, run the following commands to view this sensitive information")
 				fmt.Println("\n")
 				fmt.Println("```")
-				cmd := fmt.Sprintf("sctl send --key=%s %s", c.String("key"), encoded)
+				cmd := fmt.Sprintf("sctl receive --key=%s %s", c.String("key"), encoded)
 				fmt.Println(cmd)
 				fmt.Println("```")
+				return nil
+			},
+		},
+		{
+			Name:  "receive",
+			Usage: "Read a plaintext encoded secret",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:   "key",
+					EnvVar: "SCTL_KEY",
+					Usage:  "Gcloud KMS Key URI",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				if len(c.Args()) >= 1 {
+					decoded, err := b64.StdEncoding.DecodeString(c.Args().First())
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					cypher, err := decryptSymmetric(c.String("key"), decoded)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					fmt.Println(string(cypher))
+				}
 				return nil
 			},
 		},
