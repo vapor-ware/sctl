@@ -163,7 +163,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.6.0"
+	app.Version = "0.7.0"
 
 	app.Commands = []cli.Command{
 		{
@@ -354,6 +354,47 @@ func main() {
 					log.Fatal(err)
 				}
 
+				return nil
+			},
+		},
+		{
+			Name:  "terraform",
+			Usage: "Generate a terraform.tfvars file from secrets",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:   "key",
+					EnvVar: "SCTL_KEY",
+					Usage:  "GCloud KMS Key URI",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				if !checkEnv("SCTL_KEY") {
+					log.Fatal("Missing Env configuration: SCTL_KEY")
+				}
+
+				file, err := os.Create("terraform.tfvars")
+				if err != nil {
+					log.Fatal("Cannot create file", err)
+				}
+				defer file.Close()
+
+				var secrets []Secret
+				secrets = readSecrets()
+				for _, secret := range secrets {
+					// uncan the base64
+					decoded, err := b64.StdEncoding.DecodeString(secret.Cyphertext)
+					if err != nil {
+						log.Fatal(err)
+					}
+					// Decrypt the raw encrypted secret w/ kms
+					cypher, err := decryptSymmetric(c.String("key"), decoded)
+					if err != nil {
+						log.Fatal(err)
+					}
+					// Format the decrypted data for ENV consumption
+					skrt := fmt.Sprintf("%s=\"%s\"\n", secret.Name, cypher)
+					fmt.Fprintf(file, skrt)
+				}
 				return nil
 			},
 		},
