@@ -91,11 +91,12 @@ func encryptSymmetric(keyName string, plaintext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	encoded := b64.StdEncoding.EncodeToString(plaintext)
 
 	// Build the request.
 	req := &kmspb.EncryptRequest{
 		Name:      keyName,
-		Plaintext: plaintext,
+		Plaintext: []byte(encoded),
 	}
 	// Call the API.
 	resp, err := client.Encrypt(ctx, req)
@@ -124,7 +125,13 @@ func decryptSymmetric(keyName string, ciphertext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return resp.Plaintext, nil
+
+	decoded, err := b64.StdEncoding.DecodeString(string(resp.Plaintext))
+	if err != nil {
+		return resp.Plaintext, nil
+	}
+
+	return decoded, nil
 }
 
 func userInput() []byte {
@@ -141,8 +148,6 @@ func userInput() []byte {
 		if err != nil {
 			log.Fatal("Error on input: %s", err)
 		}
-
-		line = bytes.Trim(line, "\n")
 
 		// append scanned input to the array
 		lines = append(lines, line...)
@@ -195,7 +200,7 @@ func main() {
 					if err != nil {
 						log.Fatal(err)
 					}
-					plaintext = bytes.Trim(raw_input, "\n")
+					plaintext = bytes.TrimRight(raw_input, "\r\n")
 				} else {
 					// we're at a terminal. data is either arg after
 					// alias or prompt the user for data.
