@@ -168,7 +168,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.6.1"
+	app.Version = "0.7.0"
 
 	app.Commands = []cli.Command{
 		{
