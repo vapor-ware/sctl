@@ -19,7 +19,7 @@ pipeline {
     stage('Lint') {
       steps {
         script {
-          docker.image('vaporio/jenkins-agent-golang:latest').inside('-v $WORKSPACE:$PROJ_PATH') {
+          docker.image('vaporio/jenkins-agent-golang:master').inside('-v $WORKSPACE:$PROJ_PATH') {
             // All the deps to build this project are provided by the runtime container
             // Skip the configuration management and let the pipeline assets do that for you.
             sh 'cd ${PROJ_PATH} && dep ensure'
@@ -30,7 +30,7 @@ pipeline {
     stage('Test') {
       steps {
         script {
-          docker.image('vaporio/jenkins-agent-golang:latest').inside('-v $WORKSPACE:$PROJ_PATH') {
+          docker.image('vaporio/jenkins-agent-golang:master').inside('-v $WORKSPACE:$PROJ_PATH') {
             // All the deps to build this project are provided by the runtime container
             // Skip the configuration management and let the pipeline assets do that for you.
             sh 'cd ${PROJ_PATH} && go test -v'
@@ -51,7 +51,7 @@ pipeline {
              Without it, docker in agent is mysteriously permission
              locked despite having a GID present in the container.
           */
-          docker.image('vaporio/jenkins-agent-golang:latest').inside('-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker -v $WORKSPACE:$PROJ_PATH --group-add docker') {
+          docker.image('vaporio/jenkins-agent-golang:master').inside('-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker -v $WORKSPACE:$PROJ_PATH --group-add docker') {
             sh 'cd ${PROJ_PATH} && goreleaser release --snapshot --skip-publish --rm-dist'
           }
         }
@@ -67,7 +67,7 @@ pipeline {
       }
       steps {
         script {
-          docker.image('vaporio/jenkins-agent-golang:latest').inside('-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker -e GITHUB_TOKEN=$GITHUB_TOKEN -v $WORKSPACE:$PROJ_PATH --group-add docker') {
+          docker.image('vaporio/jenkins-agent-golang:master').inside('-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker -e GITHUB_TOKEN=$GITHUB_TOKEN -v $WORKSPACE:$PROJ_PATH --group-add docker') {
             withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
               sh 'cd ${PROJ_PATH} && goreleaser release --rm-dist'
             }
