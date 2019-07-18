@@ -32,7 +32,7 @@ type Secret struct {
 
 func addSecret(to_add Secret) {
 	// Adds or Updates a secret
-	var secrets = readSecrets()
+	var secrets = ReadSecrets()
 	for index, element := range secrets {
 		if element.Name == to_add.Name {
 			log.Printf("Rotating entry %s", element.Name)
@@ -42,12 +42,12 @@ func addSecret(to_add Secret) {
 		}
 	}
 	secrets = append(secrets, to_add)
-	writeSecrets(secrets)
+	WriteSecrets(secrets)
 }
 
 func rmSecret(secret_name string) {
 	// Remove a secret from the scuttle.json
-	var secrets = readSecrets()
+	var secrets = ReadSecrets()
 	for index, element := range secrets {
 		if element.Name == secret_name {
 			log.Printf("Removing entry %s", element.Name)
@@ -56,10 +56,10 @@ func rmSecret(secret_name string) {
 			secrets = secrets[:len(secrets)-1]       // truncate slice
 		}
 	}
-	writeSecrets(secrets)
+	WriteSecrets(secrets)
 }
 
-func readSecrets() []Secret {
+func ReadSecrets() []Secret {
 	file, err := ioutil.ReadFile(".scuttle.json")
 	if err != nil {
 		return []Secret{}
@@ -73,14 +73,13 @@ func readSecrets() []Secret {
 	return data
 }
 
-func writeSecrets(data []Secret) {
+func WriteSecrets(data []Secret) {
 	jsonData, _ := json.MarshalIndent(&data, "", " ")
 	mode := int(0660)
 	err := ioutil.WriteFile(".scuttle.json", jsonData, os.FileMode(mode))
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 // encrypt will encrypt the input plaintext with the specified symmetric key
@@ -152,7 +151,7 @@ func userInput() []byte {
 			break
 		}
 		if err != nil {
-			log.Fatal("Error on input: %s", err)
+			log.Fatalf("Error on input: %s", err)
 		}
 
 		// append scanned input to the array
@@ -174,7 +173,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.7.1"
+	app.Version = "0.7.2"
 
 	app.Commands = []cli.Command{
 		{
@@ -257,10 +256,9 @@ func main() {
 				}
 				encoded := b64.StdEncoding.EncodeToString(cypher)
 
-				fmt.Println("\n")
 				fmt.Println("Hello, I've shared some data with you with sctl! https://github.com/vapor-ware/sctl")
 				fmt.Println("Once installed, run the following commands to view this sensitive information")
-				fmt.Println("\n")
+				fmt.Println("")
 				fmt.Println("```")
 				cmd := fmt.Sprintf("sctl receive --key=%s %s", c.String("key"), encoded)
 				fmt.Println(cmd)
@@ -309,7 +307,7 @@ func main() {
 			Usage: "list known secrets",
 			Action: func(c *cli.Context) error {
 				var secrets []Secret
-				secrets = readSecrets()
+				secrets = ReadSecrets()
 				var known_keys = []string{}
 				for _, secret := range secrets {
 					known_keys = append(known_keys, secret.Name)
@@ -341,7 +339,7 @@ func main() {
 				cmd := exec.Command(c.Args().First())
 				cmd.Args, _ = shlex.Split(strings.Join(c.Args(), ", "))
 				cmd.Env = os.Environ()
-				secrets = readSecrets()
+				secrets = ReadSecrets()
 				for _, secret := range secrets {
 					// uncan the base64
 					decoded, err := b64.StdEncoding.DecodeString(secret.Cyphertext)

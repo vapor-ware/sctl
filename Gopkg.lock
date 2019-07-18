@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:17131c6158c724a12a6249bf4e28c239357695cb15ffccb6bc3f246d95e04f09"
+  name = "bou.ke/monkey"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "bdf6dea004c6fd1cdf4b25da8ad45a606c09409a"
+  version = "v1.0.1"
+
+[[projects]]
   digest = "1:3c13a2f31aaeae6e63dfc1f2c5692ffa990320cd1b8d288cb72e2ec870f1a5a2"
   name = "cloud.google.com/go"
   packages = [
@@ -12,6 +20,14 @@
   pruneopts = "UT"
   revision = "8c41231e01b2085512d98153bcffb847ff9b4b9f"
   version = "v0.38.0"
+
+[[projects]]
+  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  pruneopts = "UT"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
 
 [[projects]]
   digest = "1:499b09c6fecbec76e839ef9acf07af100219048ed22b3ca7d78948ae2767e781"
@@ -53,6 +69,22 @@
   pruneopts = "UT"
   revision = "7087cb70de9f7a8bc0a10c375cb0d2280a8edf9c"
   version = "v0.5.1"
+
+[[projects]]
+  digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  pruneopts = "UT"
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
+  digest = "1:972c2427413d41a1e06ca4897e8528e5a1622894050e2f527b38ddf0f343f759"
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  pruneopts = "UT"
+  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
+  version = "v1.3.0"
 
 [[projects]]
   digest = "1:b24d38b282bacf9791408a080f606370efa3d364e4b5fd9ba0f7b87786d3b679"
@@ -251,8 +283,10 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "bou.ke/monkey",
     "cloud.google.com/go/kms/apiv1",
     "github.com/google/shlex",
+    "github.com/stretchr/testify/assert",
     "github.com/urfave/cli",
     "google.golang.org/genproto/googleapis/cloud/kms/v1",
   ]
