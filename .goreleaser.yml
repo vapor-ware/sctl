@@ -2,11 +2,16 @@
 # Make sure to check the documentation at http://goreleaser.com
 before:
   hooks:
-    # you may remove this if you don't use vgo
-    - go mod download
+  - go mod vendor
 builds:
 - env:
   - CGO_ENABLED=0
+  - GOROOT=/usr/local/go
+  ignore:
+  - goos: linux
+    goarch: 386
+  - goos: darwin
+    goarch: 386
 archives:
 - replacements:
     darwin: Darwin
