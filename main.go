@@ -123,14 +123,20 @@ func decryptSymmetric(keyName string, ciphertext []byte) ([]byte, error) {
 	// Call the API.
 	resp, err := client.Decrypt(ctx, req)
 	if err != nil {
+		log.Printf("Unable to decrypt.")
 		return nil, err
 	}
 
+	// Introduced in v0.7 - we base64 wrap all raw data now, so we have to
+	// attempt to decode, if we fail decoding 90% chance we are in a pre v0.7
+	// secret, so return it, presuming we've decrypted/decoded everything.
 	decoded, err := b64.StdEncoding.DecodeString(string(resp.Plaintext))
 	if err != nil {
+		log.Printf("Unable to base64 decode, presuming pre v0.7 secret and returning raw")
 		return resp.Plaintext, nil
 	}
 
+	// if we get here, we're post v0.7 and have a base64 decoded, decrypted, decoded secret.
 	return decoded, nil
 }
 
@@ -168,7 +174,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.7.0"
+	app.Version = "0.7.1"
 
 	app.Commands = []cli.Command{
 		{
