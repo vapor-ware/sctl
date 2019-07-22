@@ -37,7 +37,7 @@ func TestAddSecret_NoRotation(t *testing.T) {
 		Created:    time.Now(),
 	}
 
-	addSecret(to_add)
+	AddSecret(to_add)
 }
 
 // Test that secrets are upserted
@@ -64,7 +64,7 @@ func TestAddSecret_WithRotation(t *testing.T) {
 		Created:    time.Now(),
 	}
 
-	addSecret(to_add)
+	AddSecret(to_add)
 }
 
 // Test secret removal actually removes a secret
@@ -84,7 +84,7 @@ func TestRmSecret_Exists(t *testing.T) {
 	defer patchWriter.Unpatch()
 	defer patchLogger.Unpatch()
 
-	rmSecret("A_SECRET")
+	RmSecret("A_SECRET")
 }
 
 // Test that removing a secret that does not exist does nothing to the
@@ -101,7 +101,7 @@ func TestRmSecret_NotExists(t *testing.T) {
 	defer patch.Unpatch()
 	defer patchWriter.Unpatch()
 
-	rmSecret("ANOTHER_SECRET")
+	RmSecret("ANOTHER_SECRET")
 }
 
 // Read the secrets from a file, and validate we have a slice of secrets
