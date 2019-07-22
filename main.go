@@ -28,6 +28,7 @@ type Secret struct {
 	Name       string    `json:"name"`
 	Cyphertext string    `json:"cypher"`
 	Created    time.Time `json:"created"`
+	Encoding   string    `json:"encoding"`
 }
 
 func addSecret(to_add Secret) {
@@ -82,15 +83,29 @@ func WriteSecrets(data []Secret) {
 	}
 }
 
+func decode(encoded []byte) ([]byte, error) {
+	// Introduced in v0.7 - we base64 wrap all raw data now, so we have to
+	// attempt to decode. This will return the error object if it fails
+	// and should only be invoked when encoding is set to base64
+	decoded, err := b64.StdEncoding.DecodeString(string(encoded))
+
+	return decoded, err
+}
+
 // encrypt will encrypt the input plaintext with the specified symmetric key
 // example keyName: "projects/PROJECT_ID/locations/global/keyRings/RING_ID/cryptoKeys/KEY_ID"
-func encryptSymmetric(keyName string, plaintext []byte) ([]byte, error) {
+func encryptSymmetric(keyName string, plaintext []byte, encoding string) ([]byte, error) {
 	ctx := context.Background()
 	client, err := cloudkms.NewKeyManagementClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	encoded := b64.StdEncoding.EncodeToString(plaintext)
+	// as of v0.7 we added base64 encoding by default.
+	// this switcher lets you disable this behavior
+	encoded := string(plaintext)
+	if encoding == "base64" {
+		encoded = b64.StdEncoding.EncodeToString(plaintext)
+	}
 
 	// Build the request.
 	req := &kmspb.EncryptRequest{
@@ -122,21 +137,13 @@ func decryptSymmetric(keyName string, ciphertext []byte) ([]byte, error) {
 	// Call the API.
 	resp, err := client.Decrypt(ctx, req)
 	if err != nil {
-		log.Printf("Unable to decrypt.")
+		// if this fails, its likely network or permissions related
 		return nil, err
 	}
 
-	// Introduced in v0.7 - we base64 wrap all raw data now, so we have to
-	// attempt to decode, if we fail decoding 90% chance we are in a pre v0.7
-	// secret, so return it, presuming we've decrypted/decoded everything.
-	decoded, err := b64.StdEncoding.DecodeString(string(resp.Plaintext))
-	if err != nil {
-		log.Printf("Unable to base64 decode, presuming pre v0.7 secret and returning raw")
-		return resp.Plaintext, nil
-	}
+	// return the decrypted data, and the error object
+	return resp.Plaintext, err
 
-	// if we get here, we're post v0.7 and have a base64 decoded, decrypted, decoded secret.
-	return decoded, nil
 }
 
 func userInput() []byte {
@@ -173,7 +180,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.7.2"
+	app.Version = "0.8.0"
 
 	app.Commands = []cli.Command{
 		{
@@ -184,6 +191,10 @@ func main() {
 					Name:   "key",
 					EnvVar: "SCTL_KEY",
 					Usage:  "GCloud KMS Key URI",
+				},
+				cli.BoolFlag{
+					Name:  "no-decode",
+					Usage: "When reading the secret, do not base64 decode",
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -219,7 +230,15 @@ func main() {
 					}
 				}
 				secret_name := c.Args().First()
-				cypher, err := encryptSymmetric(c.String("key"), plaintext)
+
+				secret_encoding := ""
+				if c.Bool("no-decode") == true {
+					secret_encoding = "plain"
+				} else {
+					secret_encoding = "base64"
+				}
+
+				cypher, err := encryptSymmetric(c.String("key"), plaintext, secret_encoding)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -228,6 +247,7 @@ func main() {
 					Name:       strings.ToUpper(secret_name),
 					Cyphertext: encoded,
 					Created:    time.Now(),
+					Encoding:   secret_encoding,
 				}
 				addSecret(to_add)
 				return nil
@@ -250,7 +270,7 @@ func main() {
 					log.Fatal("Empty input detected. Aborting")
 				}
 
-				cypher, err := encryptSymmetric(c.String("key"), plaintext)
+				cypher, err := encryptSymmetric(c.String("key"), plaintext, "base64")
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -350,6 +370,15 @@ func main() {
 					cypher, err := decryptSymmetric(c.String("key"), decoded)
 					if err != nil {
 						log.Fatal(err)
+					}
+					// switch output if encoding == base64
+					if secret.Encoding == "base64" {
+						cypher, err = decode(cypher)
+						if err != nil {
+							log.Fatal(err)
+						}
+					} else {
+						log.Printf("skipping decode of %v due to encoding != base64", secret.Name)
 					}
 					// Format the decrypted data for ENV consumption
 					skrt := fmt.Sprintf("%s=%s", secret.Name, cypher)
