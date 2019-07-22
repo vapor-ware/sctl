@@ -39,7 +39,8 @@ pipeline {
       }
       steps {
         script {
-          docker.image('vaporio/jenkins-agent-golang:master').inside('-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker -e GITHUB_TOKEN=$GITHUB_TOKEN -v $WORKSPACE:$PROJ_PATH --group-add docker') {
+          //TODO: Deprecate the next image once its meged in as the mainline golang builder
+          docker.image('vaporio/jenkins-agent-golang:next').inside('-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker -e GITHUB_TOKEN=$GITHUB_TOKEN -v $WORKSPACE:$PROJ_PATH --group-add docker') {
             withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
               sh 'goreleaser release --rm-dist'
             }
