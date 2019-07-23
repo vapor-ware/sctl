@@ -1,14 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/google/shlex"
 	"github.com/urfave/cli"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -16,154 +12,14 @@ import (
 	"strings"
 	"time"
 
-	cloudkms "cloud.google.com/go/kms/apiv1"
-	b64 "encoding/base64"
-	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 	exec "os/exec"
 )
-
-// Serialized secret
-// { "name": "A_SECRET", "cypher": "0xD34DB33F", "created": "2019-05-01 13:01:27.189242799 -0500 CDT m=+0.000075907"}
-type Secret struct {
-	Name       string    `json:"name"`
-	Cyphertext string    `json:"cypher"`
-	Created    time.Time `json:"created"`
-}
-
-func addSecret(to_add Secret) {
-	// Adds or Updates a secret
-	var secrets = readSecrets()
-	for index, element := range secrets {
-		if element.Name == to_add.Name {
-			log.Printf("Rotating entry %s", element.Name)
-			secrets[index] = secrets[len(secrets)-1] // copy last element to index i
-			secrets[len(secrets)-1] = Secret{}       // erase last element (zero value)
-			secrets = secrets[:len(secrets)-1]       // truncate slice
-		}
-	}
-	secrets = append(secrets, to_add)
-	writeSecrets(secrets)
-}
-
-func rmSecret(secret_name string) {
-	// Remove a secret from the scuttle.json
-	var secrets = readSecrets()
-	for index, element := range secrets {
-		if element.Name == secret_name {
-			log.Printf("Removing entry %s", element.Name)
-			secrets[index] = secrets[len(secrets)-1] // copy last element to index i
-			secrets[len(secrets)-1] = Secret{}       // erase last element (zero value)
-			secrets = secrets[:len(secrets)-1]       // truncate slice
-		}
-	}
-	writeSecrets(secrets)
-}
-
-func readSecrets() []Secret {
-	file, err := ioutil.ReadFile(".scuttle.json")
-	if err != nil {
-		return []Secret{}
-	}
-
-	var data []Secret
-	err = json.Unmarshal([]byte(file), &data)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return data
-}
-
-func writeSecrets(data []Secret) {
-	jsonData, _ := json.MarshalIndent(&data, "", " ")
-	mode := int(0660)
-	err := ioutil.WriteFile(".scuttle.json", jsonData, os.FileMode(mode))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-}
-
-// encrypt will encrypt the input plaintext with the specified symmetric key
-// example keyName: "projects/PROJECT_ID/locations/global/keyRings/RING_ID/cryptoKeys/KEY_ID"
-func encryptSymmetric(keyName string, plaintext []byte) ([]byte, error) {
-	ctx := context.Background()
-	client, err := cloudkms.NewKeyManagementClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Build the request.
-	req := &kmspb.EncryptRequest{
-		Name:      keyName,
-		Plaintext: plaintext,
-	}
-	// Call the API.
-	resp, err := client.Encrypt(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Ciphertext, nil
-}
-
-// decrypt will decrypt the input ciphertext bytes using the specified symmetric key
-// example keyName: "projects/PROJECT_ID/locations/global/keyRings/RING_ID/cryptoKeys/KEY_ID"
-func decryptSymmetric(keyName string, ciphertext []byte) ([]byte, error) {
-	ctx := context.Background()
-	client, err := cloudkms.NewKeyManagementClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Build the request.
-	req := &kmspb.DecryptRequest{
-		Name:       keyName,
-		Ciphertext: ciphertext,
-	}
-	// Call the API.
-	resp, err := client.Decrypt(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Plaintext, nil
-}
-
-func userInput() []byte {
-	// Read STDIN (keyboard, interactive) until the user sends a manual EOF
-	// with CTRL+D on WIN keyboards, CMD+D on mac.
-	fmt.Println("Enter the data you want to encrypt. END with CTRL+D or CMD+D")
-	rdr := bufio.NewReader(os.Stdin)
-	var lines []byte
-	for {
-		line, err := rdr.ReadBytes('\n')
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal("Error on input: %s", err)
-		}
-
-		line = bytes.Trim(line, "\n")
-
-		// append scanned input to the array
-		lines = append(lines, line...)
-
-	}
-	return lines
-}
-
-func checkEnv(key string) bool {
-	value := os.Getenv(key)
-	if len(value) == 0 {
-		return false
-	}
-	return true
-}
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.6.1"
+	app.Version = "0.8.1"
 
 	app.Commands = []cli.Command{
 		{
@@ -175,10 +31,14 @@ func main() {
 					EnvVar: "SCTL_KEY",
 					Usage:  "GCloud KMS Key URI",
 				},
+				cli.BoolFlag{
+					Name:  "no-decode",
+					Usage: "When reading the secret, do not base64 decode",
+				},
 			},
 			Action: func(c *cli.Context) error {
 				// Determine if the app is configured
-				if !checkEnv("SCTL_KEY") {
+				if _, found := os.LookupEnv("SCTL_KEY"); !found {
 					log.Fatal("Missing Env configuration: SCTL_KEY")
 				}
 				var plaintext []byte
@@ -195,7 +55,7 @@ func main() {
 					if err != nil {
 						log.Fatal(err)
 					}
-					plaintext = bytes.Trim(raw_input, "\n")
+					plaintext = bytes.TrimRight(raw_input, "\r\n")
 				} else {
 					// we're at a terminal. data is either arg after
 					// alias or prompt the user for data.
@@ -209,17 +69,34 @@ func main() {
 					}
 				}
 				secret_name := c.Args().First()
+
+				secret_encoding := ""
+				// determine if we need to base64 the raw text, defaults
+				// to true.
+				if c.Bool("no-decode") == true {
+					// skip encoding, encode as plain value
+					secret_encoding = "plain"
+				} else {
+					// encode value as base64 compressed string
+					secret_encoding = "base64"
+					plaintext = []byte(b64Encode(plaintext))
+				}
+
+				// encryption doesn't care about format, give it everything we've
+				// pre-processed up to this point.
 				cypher, err := encryptSymmetric(c.String("key"), plaintext)
 				if err != nil {
 					log.Fatal(err)
 				}
-				encoded := b64.StdEncoding.EncodeToString(cypher)
+				// re-encode the binary data we got back.
+				encoded := b64Encode(cypher)
 				to_add := Secret{
 					Name:       strings.ToUpper(secret_name),
 					Cyphertext: encoded,
 					Created:    time.Now(),
+					Encoding:   secret_encoding,
 				}
-				addSecret(to_add)
+				AddSecret(to_add)
 				return nil
 			},
 		},
@@ -244,12 +121,11 @@ func main() {
 				if err != nil {
 					log.Fatal(err)
 				}
-				encoded := b64.StdEncoding.EncodeToString(cypher)
+				encoded := b64Encode(cypher)
 
-				fmt.Println("\n")
 				fmt.Println("Hello, I've shared some data with you with sctl! https://github.com/vapor-ware/sctl")
 				fmt.Println("Once installed, run the following commands to view this sensitive information")
-				fmt.Println("\n")
+				fmt.Println("")
 				fmt.Println("```")
 				cmd := fmt.Sprintf("sctl receive --key=%s %s", c.String("key"), encoded)
 				fmt.Println(cmd)
@@ -269,7 +145,7 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				if len(c.Args()) >= 1 {
-					decoded, err := b64.StdEncoding.DecodeString(c.Args().First())
+					decoded, err := b64Decode([]byte(c.Args().First()))
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -289,7 +165,7 @@ func main() {
 			Usage: "rm a secret",
 			Action: func(c *cli.Context) error {
 				secret_name := strings.ToUpper(c.Args().First())
-				rmSecret(secret_name)
+				RmSecret(secret_name)
 				return nil
 			},
 		},
@@ -298,7 +174,7 @@ func main() {
 			Usage: "list known secrets",
 			Action: func(c *cli.Context) error {
 				var secrets []Secret
-				secrets = readSecrets()
+				secrets = ReadSecrets()
 				var known_keys = []string{}
 				for _, secret := range secrets {
 					known_keys = append(known_keys, secret.Name)
@@ -321,7 +197,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				if !checkEnv("SCTL_KEY") {
+				if _, found := os.LookupEnv("SCTL_KEY"); !found {
 					log.Fatal("Missing Env configuration: SCTL_KEY")
 				}
 
@@ -330,10 +206,10 @@ func main() {
 				cmd := exec.Command(c.Args().First())
 				cmd.Args, _ = shlex.Split(strings.Join(c.Args(), ", "))
 				cmd.Env = os.Environ()
-				secrets = readSecrets()
+				secrets = ReadSecrets()
 				for _, secret := range secrets {
 					// uncan the base64
-					decoded, err := b64.StdEncoding.DecodeString(secret.Cyphertext)
+					decoded, err := b64Decode([]byte(secret.Cyphertext))
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -342,8 +218,17 @@ func main() {
 					if err != nil {
 						log.Fatal(err)
 					}
+					// switch output if encoding == base64
+					if secret.Encoding == "base64" {
+						cypher, err = b64Decode(cypher)
+						if err != nil {
+							log.Fatal(err)
+						}
+					} else {
+						log.Printf("skipping decode of %v due to encoding != base64", secret.Name)
+					}
 					// Format the decrypted data for ENV consumption
-					skrt := fmt.Sprintf("%s=%s", secret.Name, cypher)
+					skrt := fmt.Sprintf("%s=%v", secret.Name, string(cypher))
 					// Append it to the command exec environment
 					cmd.Env = append(cmd.Env, skrt)
 				}
