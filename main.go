@@ -19,7 +19,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "0.8.0"
+	app.Version = "0.8.1"
 
 	app.Commands = []cli.Command{
 		{
@@ -38,7 +38,7 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				// Determine if the app is configured
-				if !CheckEnv("SCTL_KEY") {
+				if _, found := os.LookupEnv("SCTL_KEY"); !found {
 					log.Fatal("Missing Env configuration: SCTL_KEY")
 				}
 				var plaintext []byte
@@ -197,7 +197,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				if !CheckEnv("SCTL_KEY") {
+				if _, found := os.LookupEnv("SCTL_KEY"); !found {
 					log.Fatal("Missing Env configuration: SCTL_KEY")
 				}
 

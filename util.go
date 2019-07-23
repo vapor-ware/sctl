@@ -170,11 +170,3 @@ func userInput() []byte {
 	}
 	return lines
 }
-
-func CheckEnv(key string) bool {
-	value := os.Getenv(key)
-	if len(value) == 0 {
-		return false
-	}
-	return true
-}
