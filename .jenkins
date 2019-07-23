@@ -30,8 +30,7 @@ pipeline {
     }
     stage('Tagged Release') {
       when {
-        // example matches: 1.2.3, 1.2.3-dev
-        tag pattern: '(0|[1-9]*)\\.(0|[1-9]*)\\.(0|[1-9]*)(-(\\S*))?$', comparator: "REGEXP"
+        buildingTag()
       }
       agent any
       environment {
@@ -39,8 +38,7 @@ pipeline {
       }
       steps {
         script {
-          //TODO: Deprecate the next image once its meged in as the mainline golang builder
-          docker.image('vaporio/jenkins-agent-golang:next').inside('-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker -e GITHUB_TOKEN=$GITHUB_TOKEN -v $WORKSPACE:$PROJ_PATH --group-add docker') {
+          docker.image('vaporio/jenkins-agent-golang:latest').inside('-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker -e GITHUB_TOKEN=$GITHUB_TOKEN -v $WORKSPACE:$PROJ_PATH --group-add docker') {
             withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
               sh 'goreleaser release --rm-dist'
             }
