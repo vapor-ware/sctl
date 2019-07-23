@@ -32,17 +32,12 @@ pipeline {
       when {
         buildingTag()
       }
-      agent any
       environment {
         GITHUB_TOKEN = credentials('vio-bot-gh-token')
       }
       steps {
-        script {
-          docker.image('vaporio/jenkins-agent-golang:latest').inside('-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker -e GITHUB_TOKEN=$GITHUB_TOKEN -v $WORKSPACE:$PROJ_PATH --group-add docker') {
-            withDockerRegistry(registry: [credentialsId: 'vio-docker-hub']) {
-              sh 'goreleaser release --rm-dist'
-            }
-          }
+        container('golang'){
+          sh 'goreleaser release --rm-dist'
         }
       }
     }
