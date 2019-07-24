@@ -1,3 +1,7 @@
 sctl
 vendor/**
 dist/
+*.snap
+stage/**
+prime/**
+bin/**

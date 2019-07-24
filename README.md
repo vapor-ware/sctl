@@ -30,10 +30,32 @@ like "scuddle" (i'm a kube cuddle person) - ergo: "scuttle".
 
 ### Installation
 
+**Homebrew**:
+
+> Currently only x86 linux/mac are supported.
+
+```
+brew tap vapor-ware/formula
+brew install google-cloud-sdk
+brew install vapor-ware/formula/sctl
+```
+
+**Snap Packages**:
+
+> Currently only x86 linux are published.
+> Note: While we await a store request, this snap is available to install via
+> devmode only.
+
+```
+snap install --devmode --edge sctl
+```
+
 **Pipeline Releases**:
 
+> Currently only x86, linux/mac are published.
+
 Download the latest stable release from the [Releases](https://github.com/vapor-ware/sctl/releases)
-listing for your platform/arch. (currently only x86 and linux/mac are supported).
+listing for your platform/arch.
 
 Untarball the release `tar xvfz sctl_version_Linux_x86_64.tar.gz`
 

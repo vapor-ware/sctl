@@ -9,4 +9,6 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/urfave/cli v1.20.0
 	google.golang.org/genproto v0.0.0-20190716160619-c506a9f90610
+	gopkg.in/urfave/cli.v1 v1.20.0 // indirect
+	gopkg.in/yaml.v2 v2.2.2 // indirect
 )
