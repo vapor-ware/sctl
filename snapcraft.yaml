@@ -1,9 +1,9 @@
-name: scuttle
+name: sctl
 version: git
 summary: A secrets management tool
 description: |
   Does a thing
-confinement: devmode
+confinement: classic
 base: core18
 parts:
   sctl:
