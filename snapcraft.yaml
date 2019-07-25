@@ -1,0 +1,19 @@
+name: scuttle
+version: git
+summary: A secrets management tool
+description: |
+  Does a thing
+confinement: devmode
+base: core18
+parts:
+  sctl:
+    plugin: go
+    go-channel: "latest/stable"
+    go-importpath: github.com/vapor-ware/sctl
+    source: .
+    source-type: git
+    build-packages:
+      - gcc
+apps:
+  sctl:
+    command: sctl
