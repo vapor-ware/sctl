@@ -60,7 +60,9 @@ brew install google-cloud-sdk
 > channels and give us feedback on what works and does not for you.
 
 ```
-snap install --devmode --edge sctl
+snap install --edge sctl
+snap set sctl sctlkey=<YOUR_KMS_KEY_URI>
+snap connect sctl:gcloud
 ```
 
 You'll also need the google cloud sdk to do stuff with kms using scuttle
@@ -99,8 +101,15 @@ Configuration consists of 2 steps:
 - set the default KMS key for sctl to use
 
 ```
-$ gcloud auth application-default login
-$ export SCTL_KEY=projects/my-project/locations/us/keyRings/operations-keyring/cryptoKeys/operations
+gcloud auth application-default login
+export SCTL_KEY=projects/my-project/locations/us/keyRings/operations-keyring/cryptoKeys/operations
+```
+
+for snaps:
+
+```
+snap set sctl sctlkey=<YOUR_KMS_KEY_URI>
+snap connect sctl:gcloud
 ```
 
 ### Usage
