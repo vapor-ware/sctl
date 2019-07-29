@@ -15,10 +15,21 @@ parts:
     source-type: git
     build-packages:
       - gcc
+  command-sctl-wrapper:
+    plugin: dump
+    source: .
+    organize:
+      command-sctl.wrapper : usr/bin/sctl
+plugs:
+  gcloud:
+    interface: personal-files
+    read:
+      - $HOME/.config/gcloud
 apps:
   sctl:
-    command: sctl
+    command: usr/bin/sctl
     plugs:
       - home
       - network
       - removable-media
+      - gcloud
