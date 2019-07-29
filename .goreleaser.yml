@@ -15,7 +15,9 @@ snapcrafts:
     darwin: macOS
   publish: false
   summary: Software to help keep secrets on GCP
-  description: "does a thing"
+  description: |
+    Scuttle aims to help you prevent security breaches by keeping secrets out of
+    SCM in plain text by using GCP KMS and IAM
   grade: devel
   license: GPLv3
   base: core18
@@ -23,7 +25,7 @@ snapcrafts:
 builds:
 - env:
   - CGO_ENABLED=0
-  - GOROOT=/snap/go/current
+  - GOROOT=/usr/local/go
   ignore:
   - goos: linux
     goarch: 386

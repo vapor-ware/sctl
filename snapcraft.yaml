@@ -2,8 +2,9 @@ name: sctl
 version: git
 summary: A secrets management tool
 description: |
-  Does a thing
-confinement: devmode
+  Scuttle aims to help you prevent security breaches by keeping secrets out of
+  SCM in plain text by using GCP KMS and IAM
+confinement: strict
 base: core18
 parts:
   sctl:
@@ -17,3 +18,7 @@ parts:
 apps:
   sctl:
     command: sctl
+    plugs:
+      - home
+      - network
+      - removeable-media
