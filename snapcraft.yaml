@@ -21,4 +21,4 @@ apps:
     plugs:
       - home
       - network
-      - removeable-media
+      - removable-media

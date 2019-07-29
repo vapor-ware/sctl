@@ -3,25 +3,6 @@
 before:
   hooks:
   - go mod vendor
-snapcrafts:
-- id: scuttle
-  builds:
-    - scuttle
-  name: scuttle
-  name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-  replacements:
-    amd64: 64-bit
-    386: 32-bit
-    darwin: macOS
-  publish: false
-  summary: Software to help keep secrets on GCP
-  description: |
-    Scuttle aims to help you prevent security breaches by keeping secrets out of
-    SCM in plain text by using GCP KMS and IAM
-  grade: devel
-  license: GPLv3
-  base: core18
-  confinement: classic
 builds:
 - env:
   - CGO_ENABLED=0
