@@ -9,6 +9,8 @@ if [ -z "$sctlkey" ]; then
 fi
 
 # FIXME: Gross hack
+# Instead of deriving the GOOGLE_APPLICATION_CREDENTIAL path, allow the user to
+# set this path unless we can find a better way to grant access to these credentials
 export HOME=/home/$USER
 export GOOGLE_APPLICATION_CREDENTIALS=$HOME/.config/gcloud/application_default_credentials.json
 exec "$SNAP/bin/sctl" "$@"

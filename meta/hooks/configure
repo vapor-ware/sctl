@@ -1,10 +1,6 @@
 #!/bin/sh -e
 
-echo "hi from configure"
-
 sctlkey="$(snapctl get sctlkey)"
-
-echo "SCTLKEY: ${sctlkey}"
 
 if [ -z "$sctlkey" ]; then
     echo "sctl is not configured. Please snap set sctl sctlkey=<YOUR_KMS_KEY_URI>"

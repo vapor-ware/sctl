@@ -52,9 +52,9 @@ brew install google-cloud-sdk
 > Note: while we continue to refine the security policy of sctl snap packaging
 > there may be cases where it does not work as expected:
 >
-> - in $HOME, sctl does not have access to dotfiles.
-> - in $HOME/*/ sctl does not have access to dotfiles.
-> - In $HOME/*/* sctl has access and will be able to read/write to its state
+> - in `$HOME`, sctl does not have access to dotfiles.
+> - in `$HOME/*/` sctl does not have access to dotfiles.
+> - In `$HOME/*/*` sctl has access and will be able to read/write to its state
 >
 > as an early tester, please feel free to install from our stable/beta/edge
 > channels and give us feedback on what works and does not for you.
