@@ -1,0 +1,9 @@
+#!/bin/sh -e
+
+sctlkey="$(snapctl get sctlkey)"
+
+if [ -z "$sctlkey" ]; then
+    echo "sctl is not configured. Please snap set sctl sctlkey=<YOUR_KMS_KEY_URI>"
+fi
+
+ls -al $SNAP_USER_COMMON

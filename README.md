@@ -30,10 +30,52 @@ like "scuddle" (i'm a kube cuddle person) - ergo: "scuttle".
 
 ### Installation
 
+**Homebrew**:
+
+> Currently only x86 linux/mac are supported.
+
+Install sctl
+```
+brew tap vapor-ware/formula
+brew install vapor-ware/formula/sctl
+```
+
+
+You'll also need the google cloud sdk to do stuff with kms using scuttle
+```
+brew install google-cloud-sdk
+```
+
+**Snap Packages**:
+
+> Currently only x86 linux are published.
+> Note: while we continue to refine the security policy of sctl snap packaging
+> there may be cases where it does not work as expected:
+>
+> - in `$HOME`, sctl does not have access to dotfiles.
+> - in `$HOME/*/` sctl does not have access to dotfiles.
+> - In `$HOME/*/*` sctl has access and will be able to read/write to its state
+>
+> as an early tester, please feel free to install from our stable/beta/edge
+> channels and give us feedback on what works and does not for you.
+
+```
+snap install --edge sctl
+snap set sctl sctlkey=<YOUR_KMS_KEY_URI>
+snap connect sctl:gcloud
+```
+
+You'll also need the google cloud sdk to do stuff with kms using scuttle
+```
+snap install google-cloud-sdk
+```
+
 **Pipeline Releases**:
 
+> Currently only x86, linux/mac are published.
+
 Download the latest stable release from the [Releases](https://github.com/vapor-ware/sctl/releases)
-listing for your platform/arch. (currently only x86 and linux/mac are supported).
+listing for your platform/arch.
 
 Untarball the release `tar xvfz sctl_version_Linux_x86_64.tar.gz`
 
@@ -59,8 +101,15 @@ Configuration consists of 2 steps:
 - set the default KMS key for sctl to use
 
 ```
-$ gcloud auth application-default login
-$ export SCTL_KEY=projects/my-project/locations/us/keyRings/operations-keyring/cryptoKeys/operations
+gcloud auth application-default login
+export SCTL_KEY=projects/my-project/locations/us/keyRings/operations-keyring/cryptoKeys/operations
+```
+
+for snaps:
+
+```
+snap set sctl sctlkey=<YOUR_KMS_KEY_URI>
+snap connect sctl:gcloud
 ```
 
 ### Usage

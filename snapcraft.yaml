@@ -1,0 +1,35 @@
+name: sctl
+version: git
+summary: A secrets management tool
+description: |
+  Scuttle aims to help you prevent security breaches by keeping secrets out of
+  SCM in plain text by using GCP KMS and IAM
+confinement: strict
+base: core18
+parts:
+  sctl:
+    plugin: go
+    go-channel: "latest/stable"
+    go-importpath: github.com/vapor-ware/sctl
+    source: .
+    source-type: git
+    build-packages:
+      - gcc
+  command-sctl-wrapper:
+    plugin: dump
+    source: .
+    organize:
+      command-sctl.wrapper : usr/bin/sctl
+plugs:
+  gcloud:
+    interface: personal-files
+    read:
+      - $HOME/.config/gcloud
+apps:
+  sctl:
+    command: usr/bin/sctl
+    plugs:
+      - home
+      - network
+      - removable-media
+      - gcloud
