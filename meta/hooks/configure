@@ -6,8 +6,16 @@ if [ -z "${SCTLKEY}" ]; then
     echo "sctl is not configured. Please snap set sctl sctlkey=<YOUR_KMS_KEY_URI>"
 fi
 
-GOOGLE_CREDENTIAL="$(snapctl get credential)"
+export GOOGLE_CREDENTIAL="$(snapctl get credential)"
 if [ -z "${GOOGLE_CREDENTIAL}" ]; then
-    echo "sctl is not configured. Please snap set sctl credential=<FILENAME_OF_CREDENTIAL.json>"
-    echo "note: this file must be present in $HOME/snap/sctl/current/"
+    echo "sctl is not configured. Please snap set sctl google_credential=<FILENAME_OF_CREDENTIALS.json>"
+    echo "note: this file must be present in $HOME or the /current symlinked directory"
+    echo ""
+    echo "eg:"
+    echo "gcloud auth application-default login"
+    echo "cp ~/.config/gcloud/application_default_credentials.json ~/snap/sctl/current/credentials.json"
+    echo "snap set sctl credential=credentials.json"
+
+    exit 1
 fi
+
