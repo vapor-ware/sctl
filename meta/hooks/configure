@@ -1,9 +1,13 @@
 #!/bin/sh -e
 
-sctlkey="$(snapctl get sctlkey)"
+SCTLKEY="$(snapctl get sctlkey)"
 
-if [ -z "$sctlkey" ]; then
+if [ -z "${SCTLKEY}" ]; then
     echo "sctl is not configured. Please snap set sctl sctlkey=<YOUR_KMS_KEY_URI>"
 fi
 
-ls -al $SNAP_USER_COMMON
+GOOGLE_CREDENTIAL="$(snapctl get credential)"
+if [ -z "${GOOGLE_CREDENTIAL}" ]; then
+    echo "sctl is not configured. Please snap set sctl credential=<FILENAME_OF_CREDENTIAL.json>"
+    echo "note: this file must be present in $HOME/snap/sctl/current/"
+fi

@@ -109,7 +109,9 @@ for snaps:
 
 ```
 snap set sctl sctlkey=<YOUR_KMS_KEY_URI>
-snap connect sctl:gcloud
+gcloud auth application-default login
+mkdir -p $HOME/snaps/sctl/current/.config/gcloud
+cp $HOME/.config/gcloud/application_default_credentials.json $HOME/snaps/current/.config/gcloud/application_default_credentials.json
 ```
 
 ### Usage

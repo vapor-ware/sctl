@@ -2,15 +2,25 @@
 
 set -eu
 
-sctlkey="$(snapctl get sctlkey)"
-if [ -z "$sctlkey" ]; then
+export SCTLKEY="$(snapctl get sctlkey)"
+if [ -z "$SCTLKEY" ]; then
     echo "sctl is not configured. Please snap set sctl sctlkey=<YOUR_KMS_KEY_URI>"
     exit 1
 fi
 
-# FIXME: Gross hack
-# Instead of deriving the GOOGLE_APPLICATION_CREDENTIAL path, allow the user to
-# set this path unless we can find a better way to grant access to these credentials
-export HOME=/home/$USER
-export GOOGLE_APPLICATION_CREDENTIALS=$HOME/.config/gcloud/application_default_credentials.json
+export GOOGLE_CREDENTIAL="$(snapctl get credential)"
+if [ -z "${GOOGLE_CREDENTIAL}" ]; then
+    echo "sctl is not configured. Please snap set sctl google_credential=<FILENAME_OF_CREDENTIALS.json>"
+    echo "note: this file must be present in $HOME or the /current symlinked directory"
+    echo ""
+    echo "eg:"
+    echo "gcloud auth application-default login"
+    echo "cp ~/.config/gcloud/application_default_credentials.json ~/snap/sctl/current/credentials.json"
+    echo "snap set sctl credential=credentials.json"
+
+    exit 1
+fi
+
+export GOOGLE_APPLICATION_CREDENTIALS="${HOME}/${GOOGLE_CREDENTIAL}"
+
 exec "$SNAP/bin/sctl" "$@"

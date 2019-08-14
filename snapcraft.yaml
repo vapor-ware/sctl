@@ -20,11 +20,6 @@ parts:
     source: .
     organize:
       command-sctl.wrapper : usr/bin/sctl
-plugs:
-  gcloud:
-    interface: personal-files
-    read:
-      - $HOME/.config/gcloud
 apps:
   sctl:
     command: usr/bin/sctl
@@ -32,4 +27,3 @@ apps:
       - home
       - network
       - removable-media
-      - gcloud
