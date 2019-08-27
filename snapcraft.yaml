@@ -4,7 +4,7 @@ summary: A secrets management tool
 description: |
   Scuttle aims to help you prevent security breaches by keeping secrets out of
   SCM in plain text by using GCP KMS and IAM
-confinement: strict
+confinement: devmode
 base: core18
 parts:
   sctl:
@@ -20,16 +20,7 @@ parts:
     source: .
     organize:
       command-sctl.wrapper : usr/bin/sctl
-plugs:
-  gcloud:
-    interface: personal-files
-    read:
-      - $HOME/.config/gcloud
 apps:
   sctl:
     command: usr/bin/sctl
-    plugs:
-      - home
-      - network
-      - removable-media
-      - gcloud
+
