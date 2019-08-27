@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/google/shlex"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"log"
@@ -19,7 +18,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "1.0.0-rc1"
+	app.Version = "1.0.0-rc3"
 
 	app.Commands = []cli.Command{
 		{
@@ -189,6 +188,7 @@ func main() {
 		{
 			Name:  "run",
 			Usage: "run a command with secrets exported as env",
+			SkipArgReorder: true,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key",
@@ -202,9 +202,9 @@ func main() {
 				}
 
 				var secrets []Secret
+				var arguments []string = c.Args()
 
-				cmd := exec.Command(c.Args().First())
-				cmd.Args, _ = shlex.Split(strings.Join(c.Args(), ", "))
+				cmd := exec.Command(arguments[0], arguments[1:]...)
 				cmd.Env = os.Environ()
 				secrets = ReadSecrets()
 				for _, secret := range secrets {
