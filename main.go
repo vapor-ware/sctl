@@ -3,15 +3,15 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/urfave/cli"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 	"time"
 
-	exec "os/exec"
+	"github.com/urfave/cli"
 )
 
 func main() {
@@ -50,11 +50,11 @@ func main() {
 				stat, _ := os.Stdin.Stat()
 				if (stat.Mode() & os.ModeCharDevice) == 0 {
 					// we presume data is being piped to stdin
-					raw_input, err := ioutil.ReadAll(os.Stdin)
+					rawInput, err := ioutil.ReadAll(os.Stdin)
 					if err != nil {
 						log.Fatal(err)
 					}
-					plaintext = bytes.TrimRight(raw_input, "\r\n")
+					plaintext = bytes.TrimRight(rawInput, "\r\n")
 				} else {
 					// we're at a terminal. data is either arg after
 					// alias or prompt the user for data.
@@ -67,17 +67,17 @@ func main() {
 						}
 					}
 				}
-				secret_name := c.Args().First()
+				secretName := c.Args().First()
 
-				secret_encoding := ""
+				secretEncoding := ""
 				// determine if we need to base64 the raw text, defaults
 				// to true.
 				if c.Bool("no-decode") == true {
 					// skip encoding, encode as plain value
-					secret_encoding = "plain"
+					secretEncoding = "plain"
 				} else {
 					// encode value as base64 compressed string
-					secret_encoding = "base64"
+					secretEncoding = "base64"
 					plaintext = []byte(b64Encode(plaintext))
 				}
 
@@ -89,13 +89,13 @@ func main() {
 				}
 				// re-encode the binary data we got back.
 				encoded := b64Encode(cypher)
-				to_add := Secret{
-					Name:       strings.ToUpper(secret_name),
+				toAdd := Secret{
+					Name:       strings.ToUpper(secretName),
 					Cyphertext: encoded,
 					Created:    time.Now(),
-					Encoding:   secret_encoding,
+					Encoding:   secretEncoding,
 				}
-				AddSecret(to_add)
+				AddSecret(toAdd)
 				return nil
 			},
 		},
@@ -163,8 +163,8 @@ func main() {
 			Name:  "rm",
 			Usage: "rm a secret",
 			Action: func(c *cli.Context) error {
-				secret_name := strings.ToUpper(c.Args().First())
-				RmSecret(secret_name)
+				secretName := strings.ToUpper(c.Args().First())
+				RmSecret(secretName)
 				return nil
 			},
 		},
@@ -174,20 +174,20 @@ func main() {
 			Action: func(c *cli.Context) error {
 				var secrets []Secret
 				secrets = ReadSecrets()
-				var known_keys = []string{}
+				var knownKeys []string
 				for _, secret := range secrets {
-					known_keys = append(known_keys, secret.Name)
+					knownKeys = append(knownKeys, secret.Name)
 				}
-				sort.Strings(known_keys)
-				for _, k := range known_keys {
+				sort.Strings(knownKeys)
+				for _, k := range knownKeys {
 					fmt.Println(k)
 				}
 				return nil
 			},
 		},
 		{
-			Name:  "run",
-			Usage: "run a command with secrets exported as env",
+			Name:           "run",
+			Usage:          "run a command with secrets exported as env",
 			SkipArgReorder: true,
 			Flags: []cli.Flag{
 				cli.StringFlag{
