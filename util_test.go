@@ -31,13 +31,13 @@ func TestAddSecret_NoRotation(t *testing.T) {
 	defer patch.Unpatch()
 	defer patchWriter.Unpatch()
 
-	to_add := Secret{
+	toAdd := Secret{
 		Name:       "TEST_TO_ADD",
 		Cyphertext: "abc==",
 		Created:    time.Now(),
 	}
 
-	AddSecret(to_add)
+	AddSecret(toAdd)
 }
 
 // Test that secrets are upserted
@@ -58,13 +58,13 @@ func TestAddSecret_WithRotation(t *testing.T) {
 	defer patchWriter.Unpatch()
 	defer patchLogger.Unpatch()
 
-	to_add := Secret{
+	toAdd := Secret{
 		Name:       "A_SECRET",
 		Cyphertext: "xyz==",
 		Created:    time.Now(),
 	}
 
-	AddSecret(to_add)
+	AddSecret(toAdd)
 }
 
 // Test secret removal actually removes a secret
@@ -106,10 +106,10 @@ func TestRmSecret_NotExists(t *testing.T) {
 
 // Read the secrets from a file, and validate we have a slice of secrets
 func TestReadSecrets_ValidJson(t *testing.T) {
-	valid_json := `[{"name": "A_SECRET","cypher": "abc==", "created": "2019-07-18T09:56:53.76993767-05:00"}]`
+	validJSON := `[{"name": "A_SECRET","cypher": "abc==", "created": "2019-07-18T09:56:53.76993767-05:00"}]`
 
 	patch := monkey.Patch(ioutil.ReadFile, func(filename string) ([]byte, error) {
-		return []byte(valid_json), nil
+		return []byte(validJSON), nil
 	})
 
 	defer patch.Unpatch()
@@ -122,10 +122,10 @@ func TestReadSecrets_ValidJson(t *testing.T) {
 // Test a malformed json file. As intercepting log.Fatal is hard, all I'll check
 // for is the presence of an error
 func TestReadSecrets_InvalidJson(t *testing.T) {
-	valid_json := `[{"name": "A_SECRET" "cypher": "abc==", "created": "2019-07-18T09:56:53.76993767-05:00"}]`
+	validJSON := `[{"name": "A_SECRET" "cypher": "abc==", "created": "2019-07-18T09:56:53.76993767-05:00"}]`
 
 	patch := monkey.Patch(ioutil.ReadFile, func(filename string) ([]byte, error) {
-		return []byte(valid_json), nil
+		return []byte(validJSON), nil
 	})
 
 	fakeLogFatal := func(msg ...interface{}) {

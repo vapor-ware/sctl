@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,16 +13,19 @@ import (
 	"time"
 
 	cloudkms "cloud.google.com/go/kms/apiv1"
-	b64 "encoding/base64"
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 )
 
-// Serialized secret
-// { "name": "A_SECRET",
-// "cypher": "0xD34DB33F",
-// "created": "2019-05-01 13:01:27.189242799 -0500 CDT m=+0.000075907"
-// "encoding": "plain"
-// }
+// Secret contains data and metadata related to a scuttle-managed secret.
+//
+// An example JSON-serialized secret:
+//
+//    {
+//      "name": "A_SECRET",
+//      "cypher": "0xD34DB33F",
+//      "created": "2019-05-01 13:01:27.189242799 -0500 CDT m=+0.000075907",
+//      "encoding": "plain"
+//     }
 type Secret struct {
 	Name       string    `json:"name"`
 	Cyphertext string    `json:"cypher"`
@@ -30,27 +34,27 @@ type Secret struct {
 }
 
 // AddSecret appends a secret to a given .scuttle.json file to rest
-func AddSecret(to_add Secret) {
+func AddSecret(toAdd Secret) {
 	// Adds or Updates a secret
 	var secrets = ReadSecrets()
 	for index, element := range secrets {
-		if element.Name == to_add.Name {
+		if element.Name == toAdd.Name {
 			log.Printf("Rotating entry %s", element.Name)
 			secrets[index] = secrets[len(secrets)-1] // copy last element to index i
 			secrets[len(secrets)-1] = Secret{}       // erase last element (zero value)
 			secrets = secrets[:len(secrets)-1]       // truncate slice
 		}
 	}
-	secrets = append(secrets, to_add)
+	secrets = append(secrets, toAdd)
 	WriteSecrets(secrets)
 }
 
 // RmSecret removes a secret by name from a given .scuttle.json file
-func RmSecret(secret_name string) {
+func RmSecret(secretName string) {
 	// Remove a secret from the scuttle.json
 	var secrets = ReadSecrets()
 	for index, element := range secrets {
-		if element.Name == secret_name {
+		if element.Name == secretName {
 			log.Printf("Removing entry %s", element.Name)
 			secrets[index] = secrets[len(secrets)-1] // copy last element to index i
 			secrets[len(secrets)-1] = Secret{}       // erase last element (zero value)
