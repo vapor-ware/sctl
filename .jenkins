@@ -2,11 +2,7 @@
 
 pipeline {
   agent {
-    label 'golang-next'
-  }
-  environment {
-    PROJ_PATH = '/go/src/github.com/vapor-ware/sctl'
-    GOVERSION = '1.11'
+    label 'golang-alpha'
   }
   stages {
     stage('Checkout') {
@@ -14,17 +10,24 @@ pipeline {
         checkout scm
       }
     }
+    stage('Lint') {
+      steps {
+        container('golang') {
+          sh 'golint -set_exit_status'
+        }
+      }
+    }
     stage('Test') {
       steps {
-        container('golang'){
+        container('golang') {
           sh 'go test -v'
         }
       }
     }
     stage('Snapshot Build') {
       steps {
-        container('golang'){
-          sh 'goreleaser release --snapshot --skip-publish --rm-dist'
+        container('golang') {
+          sh 'goreleaser release --debug --snapshot --skip-publish --rm-dist'
         }
       }
     }
@@ -36,8 +39,8 @@ pipeline {
         GITHUB_TOKEN = credentials('vio-bot-gh-token')
       }
       steps {
-        container('golang'){
-          sh 'goreleaser release --rm-dist'
+        container('golang') {
+          sh 'goreleaser release --debug --rm-dist'
         }
       }
     }
