@@ -49,20 +49,13 @@ brew install google-cloud-sdk
 **Snap Packages**:
 
 > Currently only x86 linux are published.
-> Note: while we continue to refine the security policy of sctl snap packaging
-> there may be cases where it does not work as expected:
->
-> - in `$HOME`, sctl does not have access to dotfiles.
-> - in `$HOME/*/` sctl does not have access to dotfiles.
-> - In `$HOME/*/*` sctl has access and will be able to read/write to its state
->
-> as an early tester, please feel free to install from our stable/beta/edge
-> channels and give us feedback on what works and does not for you.
+> Note: while we continue to refine sctl's use of snap packaging
+> there may be cases where it does not work as expected, so for now
+> install with devmode which is dangerous, from the edge channel.
 
 ```
-snap install --edge sctl
+snap install --devmode --edge sctl
 snap set sctl sctlkey=<YOUR_KMS_KEY_URI>
-snap connect sctl:gcloud
 ```
 
 You'll also need the google cloud sdk to do stuff with kms using scuttle
@@ -85,7 +78,7 @@ Install the `sctl` binary somewhere in $PATH, eg:
 
 **From Source**:
 
-You'll need at least go 1.10, a valid `$GOPATH`, and should have the GOPATH
+You'll need at least go 1.11 (for go modules), a valid `$GOPATH`, and should have the GOPATH
 bin path appended to `$PATH`
 
 ```
@@ -102,14 +95,13 @@ Configuration consists of 2 steps:
 
 ```
 gcloud auth application-default login
-export SCTL_KEY=projects/my-project/locations/us/keyRings/operations-keyring/cryptoKeys/operations
+export SCTL_KEY=projects/my-project/locations/us/keyRings/my-keyring/cryptoKeys/my-key
 ```
 
 for snaps:
 
 ```
 snap set sctl sctlkey=<YOUR_KMS_KEY_URI>
-snap connect sctl:gcloud
 ```
 
 ### Usage
@@ -119,7 +111,7 @@ flag, or simply run sctl without any arguments.
 
 ```
 $ sctl add foo
-Enter the data you want to encrypt. END with CTRL+D or CMD+D
+Enter the data you want to encrypt. END with CTRL+D
 bar
 $ sctl list
 FOO
@@ -129,6 +121,7 @@ $ cat .scuttle.json
   "name": "FOO",
   "cypher": "CiQArcZm2GES73oHpipKV3UHUyFOUkPvWADrV/H6IssOIfVuh9wSKwDujG3UyRBnTFqciamPsK0x8UIaq6kzsYlhPoA9YHCzh0pd3KOJFpkvQqI=",
   "created": "2019-05-01T19:08:58.959335955-05:00"
+  "encoding": "base64"
  }
 ]
 # sctl run helmfile diff
