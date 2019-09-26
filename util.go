@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 	"time"
 
 	cloudkms "cloud.google.com/go/kms/apiv1"
@@ -156,7 +157,7 @@ func decryptSymmetric(keyName string, ciphertext []byte) ([]byte, error) {
 func userInput() []byte {
 	// Read STDIN (keyboard, interactive) until the user sends a manual EOF
 	// with CTRL+D on WIN keyboards, CMD+D on mac.
-	fmt.Println("Enter the data you want to encrypt. END with CTRL+D or CMD+D")
+	fmt.Printf("Enter the data you want to encrypt. END with %s\n", eofKeySequenceText())
 	rdr := bufio.NewReader(os.Stdin)
 	var lines []byte
 	for {
@@ -173,4 +174,17 @@ func userInput() []byte {
 
 	}
 	return lines
+}
+
+func eofKeySequenceText() string {
+	// Detect the OS and return the help text for userInputs
+	if runtime.GOOS == "windows" {
+		return "Ctrl+Z and Enter"
+	}
+
+	if runtime.GOOS == "darwin" {
+		return "⌘+D"
+	}
+
+	return "Ctrl+D"
 }
