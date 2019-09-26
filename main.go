@@ -37,8 +37,8 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				// Determine if the app is configured
-				if _, found := os.LookupEnv("SCTL_KEY"); !found {
-					log.Fatal("Missing Env configuration: SCTL_KEY")
+				if (len(c.String("key")) == 0 ) {
+					log.Fatal("Missing configuration for key.")
 				}
 				var plaintext []byte
 				// disallow empty key data
@@ -114,6 +114,10 @@ func main() {
 				plaintext := userInput()
 				if len(plaintext) == 0 {
 					log.Fatal("Empty input detected. Aborting")
+				}
+
+				if (len(c.String("key")) == 0 ) {
+					log.Fatal("Missing configuration for key.")
 				}
 
 				cypher, err := encryptSymmetric(c.String("key"), plaintext)
