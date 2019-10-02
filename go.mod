@@ -1,11 +1,9 @@
 module github.com/vapor-ware/sctl
 
-go 1.11
+go 1.13
 
 require (
-	bou.ke/monkey v1.0.1
-	cloud.google.com/go v0.43.0
-	github.com/stretchr/testify v1.3.0
-	github.com/urfave/cli v1.20.0
-	google.golang.org/genproto v0.0.0-20190716160619-c506a9f90610
+	cloud.google.com/go v0.46.3
+	github.com/urfave/cli v1.22.1
+	google.golang.org/genproto v0.0.0-20190927181202-20e1ac93f88c
 )

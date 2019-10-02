@@ -4,14 +4,14 @@ before:
   hooks:
   - go mod vendor
 builds:
-- env:
+- main:
+  env:
   - CGO_ENABLED=0
   - GOROOT=/usr/local/go
-  ignore:
-  - goos: linux
-    goarch: 386
-  - goos: darwin
-    goarch: 386
+  goos:
+  - linux
+  - darwin
+  - windows
 archives:
 - replacements:
     darwin: Darwin

@@ -47,21 +47,8 @@ brew install google-cloud-sdk
 ```
 
 **Snap Packages**:
-
-> Currently only x86 linux are published.
-> Note: while we continue to refine sctl's use of snap packaging
-> there may be cases where it does not work as expected, so for now
-> install with devmode which is dangerous, from the edge channel.
-
-```
-snap install --devmode --edge sctl
-snap set sctl sctlkey=<YOUR_KMS_KEY_URI>
-```
-
-You'll also need the google cloud sdk to do stuff with kms using scuttle
-```
-snap install google-cloud-sdk
-```
+> We tried snaps, at this time its not a suitable release channel for sctl.
+> We are open to attempting again in the future.
 
 **Pipeline Releases**:
 
@@ -96,12 +83,6 @@ Configuration consists of 2 steps:
 ```
 gcloud auth application-default login
 export SCTL_KEY=projects/my-project/locations/us/keyRings/my-keyring/cryptoKeys/my-key
-```
-
-for snaps:
-
-```
-snap set sctl sctlkey=<YOUR_KMS_KEY_URI>
 ```
 
 ### Usage
