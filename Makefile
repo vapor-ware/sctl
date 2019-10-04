@@ -1,9 +1,6 @@
 test:
 	go test -cover -v ./...
 
-integration:
-	go test -cover -v ./... -tag=integration
-
 clean:
 	rm -rf dist vendor sctl sctl.exe
 

@@ -4,7 +4,6 @@ import (
 	cloudkms "cloud.google.com/go/kms/apiv1"
 	"context"
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
-	"log"
 )
 
 // KMS is a contract interface that must be implemented for sctl to talk to the backing KMS service
@@ -25,7 +24,7 @@ type GCPKMS struct {
 	keyname string
 }
 
-// Encrypt -
+// Encrypt - invoke GCP KMS to encrypt the data. Returns a bytestream of binary data.
 func (gkms *GCPKMS) Encrypt(plaintext []byte) ([]byte, error) {
 	// https://cloud.google.com/kms/docs/encrypt-decrypt#kms-howto-encrypt-go
 	ctx := context.Background()
@@ -47,12 +46,11 @@ func (gkms *GCPKMS) Encrypt(plaintext []byte) ([]byte, error) {
 	return resp.Ciphertext, nil
 }
 
-// Decrypt -
+// Decrypt - invoke the GCP KMS api to decrypt ciphertext.
 func (gkms *GCPKMS) Decrypt(ciphertext []byte) ([]byte, error) {
 	ctx := context.Background()
 	client, err := cloudkms.NewKeyManagementClient(ctx)
 	if err != nil {
-		log.Fatalf("DECRYPT - %s", err)
 		return nil, err
 	}
 
@@ -69,7 +67,7 @@ func (gkms *GCPKMS) Decrypt(ciphertext []byte) ([]byte, error) {
 	}
 
 	// return the decrypted data, and the error object
-	return resp.Plaintext, err
+	return resp.Plaintext, nil
 }
 
 // NewGCPKMS factory method to create a new Google CloudPlatform KMS client

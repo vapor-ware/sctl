@@ -19,7 +19,7 @@ import (
 
 // BuildContextualMenu - Assemble the CLI commands, subcommands, and flags
 // Handles the majority of the CLI interface.
-// Retuns an array of cli.Command configuration
+// Returns an array of cli.Command configuration
 func BuildContextualMenu() []cli.Command {
 	return []cli.Command{
 		{
@@ -49,7 +49,7 @@ func BuildContextualMenu() []cli.Command {
 				// Scan for data being piped via STDIN and favor this over alternate inputs
 				plaintext = stdinScan()
 				if plaintext == nil {
-					// NO data deteced on stdin, attempt to scan for args after keyname
+					// NO data detected on stdin, attempt to scan for args after keyname
 					if len(c.Args()) > 1 {
 						plaintext = []byte(c.Args()[1])
 					} else {
@@ -99,7 +99,7 @@ func BuildContextualMenu() []cli.Command {
 		},
 		{
 			Name:  "send",
-			Usage: "Encode/Decode a secret for copy/paste",
+			Usage: "Encode/Decode a secret for copy/paste without storing in state",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key",
@@ -143,7 +143,7 @@ func BuildContextualMenu() []cli.Command {
 		},
 		{
 			Name:  "receive",
-			Usage: "Read a plaintext encoded secret",
+			Usage: "Read a sent secret from sctl send",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key",
@@ -170,7 +170,7 @@ func BuildContextualMenu() []cli.Command {
 		},
 		{
 			Name:  "rm",
-			Usage: "rm a secret",
+			Usage: "Delete a secret from state",
 			Action: func(c *cli.Context) error {
 				secretName := strings.ToUpper(c.Args().First())
 				utils.DeleteSecret(secretName)
@@ -222,13 +222,13 @@ func BuildContextualMenu() []cli.Command {
 					client := cloud.NewGCPKMS(c.String("key"))
 					cypher, err := client.Decrypt(decoded)
 					if err != nil {
-						log.Fatal(err)
+						log.Fatalf("CLI - DECRYPT - %s", err)
 					}
 					// switch output if encoding == base64
 					if secret.Encoding == "base64" {
 						cypher, err = base64.StdEncoding.DecodeString(string(cypher))
 						if err != nil {
-							log.Fatal(err)
+							log.Fatalf("CLI - ENCODING - %s", err)
 						}
 					} else {
 						log.Printf("skipping decode of %v due to encoding != base64", secret.Name)

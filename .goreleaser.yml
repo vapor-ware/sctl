@@ -2,8 +2,7 @@ before:
   hooks:
   - go mod vendor
 builds:
-- main:
-  env:
+- env:
   - CGO_ENABLED=0
   - GOROOT=/usr/local/go
   goos:
