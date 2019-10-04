@@ -217,9 +217,9 @@ func BuildContextualMenu() []cli.Command {
 					// uncan the base64
 					decoded, err := base64.StdEncoding.DecodeString(secret.Cyphertext)
 					if err != nil {
-						log.Fatal(err)
+						log.Fatalf("CLI - DECODING - %s", err)
 					}
-					client := cloud.GCPKMS{}
+					client := cloud.NewGCPKMS(c.String("key"))
 					cypher, err := client.Decrypt(decoded)
 					if err != nil {
 						log.Fatal(err)

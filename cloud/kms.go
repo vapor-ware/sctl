@@ -1,10 +1,10 @@
 package cloud
 
 import (
-	"context"
-
 	cloudkms "cloud.google.com/go/kms/apiv1"
+	"context"
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
+	"log"
 )
 
 // KMS is a contract interface that must be implemented for sctl to talk to the backing KMS service
@@ -52,6 +52,7 @@ func (gkms *GCPKMS) Decrypt(ciphertext []byte) ([]byte, error) {
 	ctx := context.Background()
 	client, err := cloudkms.NewKeyManagementClient(ctx)
 	if err != nil {
+		log.Fatalf("DECRYPT - %s", err)
 		return nil, err
 	}
 
