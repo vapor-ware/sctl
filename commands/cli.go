@@ -1,11 +1,13 @@
-package utils
+package commands
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/urfave/cli"
 	"github.com/vapor-ware/sctl/cloud"
+	"github.com/vapor-ware/sctl/utils"
 	"io/ioutil"
 	"log"
 	"os"
@@ -52,7 +54,7 @@ func BuildContextualMenu() []cli.Command {
 						plaintext = []byte(c.Args()[1])
 					} else {
 						// Everything else has failed finally resort to prompting for manual input
-						plaintext = userInput()
+						plaintext = utils.UserInput()
 						// if we have nothing at this phase, log an error and abort
 						if len(plaintext) == 0 {
 							log.Fatal("Empty input detected. Aborting")
@@ -71,25 +73,26 @@ func BuildContextualMenu() []cli.Command {
 				} else {
 					// encode value as base64 compressed string
 					secretEncoding = "base64"
-					plaintext = []byte(b64Encode(plaintext))
+					plaintext = []byte(base64.StdEncoding.EncodeToString(plaintext))
 				}
 
 				// Init a KMS client
-				client := cloud.GCPKMS{}
-				cypher, err := client.Encrypt(c.String("key"), plaintext)
+				client := cloud.NewGCPKMS(c.String("key"))
+
+				cypher, err := client.Encrypt(plaintext)
 				if err != nil {
 					log.Fatal(err)
 				}
 				// re-encode the binary data we got back.
-				encoded := b64Encode(cypher)
-				toAdd := Secret{
+				encoded := base64.StdEncoding.EncodeToString(cypher)
+				toAdd := utils.Secret{
 					Name:       strings.ToUpper(secretName),
 					Cyphertext: encoded,
 					Created:    time.Now(),
 					Encoding:   secretEncoding,
 				}
 
-				AddSecret(toAdd)
+				utils.AddSecret(toAdd)
 
 				return nil
 			},
@@ -115,18 +118,18 @@ func BuildContextualMenu() []cli.Command {
 				// attempt stdin scan, SEND should be pipeable for things like cat'ing a file.
 				plaintext = stdinScan()
 				if plaintext == nil {
-					plaintext = userInput()
+					plaintext = utils.UserInput()
 				}
 				if len(plaintext) == 0 {
 					log.Fatal("Empty input detected. Aborting")
 				}
 
-				client := cloud.GCPKMS{}
-				cypher, err := client.Encrypt(c.String("key"), plaintext)
+				client := cloud.NewGCPKMS(c.String("key"))
+				cypher, err := client.Encrypt(plaintext)
 				if err != nil {
 					log.Fatal(err)
 				}
-				encoded := b64Encode(cypher)
+				encoded := base64.StdEncoding.EncodeToString(cypher)
 
 				fmt.Println("Hello, I've shared some data with you with sctl! https://github.com/vapor-ware/sctl")
 				fmt.Println("Once installed, run the following commands to view this sensitive information")
@@ -150,12 +153,12 @@ func BuildContextualMenu() []cli.Command {
 			},
 			Action: func(c *cli.Context) error {
 				if len(c.Args()) >= 1 {
-					decoded, err := b64Decode([]byte(c.Args().First()))
+					decoded, err := base64.StdEncoding.DecodeString(c.Args().First())
 					if err != nil {
 						log.Fatal(err)
 					}
-					client := cloud.GCPKMS{}
-					cypher, err := client.Decrypt(c.String("key"), decoded)
+					client := cloud.NewGCPKMS(c.String("key"))
+					cypher, err := client.Decrypt(decoded)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -170,7 +173,7 @@ func BuildContextualMenu() []cli.Command {
 			Usage: "rm a secret",
 			Action: func(c *cli.Context) error {
 				secretName := strings.ToUpper(c.Args().First())
-				DeleteSecret(secretName)
+				utils.DeleteSecret(secretName)
 				return nil
 			},
 		},
@@ -178,7 +181,7 @@ func BuildContextualMenu() []cli.Command {
 			Name:  "list",
 			Usage: "list known secrets",
 			Action: func(c *cli.Context) error {
-				secrets := ReadSecrets()
+				secrets := utils.ReadSecrets()
 				var knownKeys []string
 				for _, secret := range secrets {
 					knownKeys = append(knownKeys, secret.Name)
@@ -204,26 +207,26 @@ func BuildContextualMenu() []cli.Command {
 			Action: func(c *cli.Context) error {
 				validateContext(c, "run")
 
-				var secrets []Secret
+				var secrets []utils.Secret
 				var arguments []string = c.Args()
 
 				cmd := exec.Command(arguments[0], arguments[1:]...)
 				cmd.Env = os.Environ()
-				secrets = ReadSecrets()
+				secrets = utils.ReadSecrets()
 				for _, secret := range secrets {
 					// uncan the base64
-					decoded, err := b64Decode([]byte(secret.Cyphertext))
+					decoded, err := base64.StdEncoding.DecodeString(secret.Cyphertext)
 					if err != nil {
 						log.Fatal(err)
 					}
 					client := cloud.GCPKMS{}
-					cypher, err := client.Decrypt(c.String("key"), decoded)
+					cypher, err := client.Decrypt(decoded)
 					if err != nil {
 						log.Fatal(err)
 					}
 					// switch output if encoding == base64
 					if secret.Encoding == "base64" {
-						cypher, err = b64Decode(cypher)
+						cypher, err = base64.StdEncoding.DecodeString(string(cypher))
 						if err != nil {
 							log.Fatal(err)
 						}

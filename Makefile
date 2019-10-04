@@ -1,6 +1,9 @@
 test:
 	go test -cover -v ./...
 
+integration:
+	go test -cover -v ./... -tag=integration
+
 clean:
 	rm -rf dist vendor sctl sctl.exe
 
@@ -10,3 +13,5 @@ fmt:
 lint:
 	@golint -set_exit_status
 
+snapshot:
+	goreleaser release --debug --snapshot --skip-publish --rm-dist

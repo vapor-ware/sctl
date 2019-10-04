@@ -7,17 +7,26 @@ import (
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 )
 
-// KMS -
+// KMS is a contract interface that must be implemented for sctl to talk to the backing KMS service
+// two methods of Encrypt and Decrypt, that return byte slices of plaintext/cyphertext respectively and
+// any unwrapped errors that surface from the operation.
 type KMS interface {
 	Encrypt(string, []byte) ([]byte, error)
 	Decrypt(string, []byte) ([]byte, error)
 }
 
-// GCPKMS -
-type GCPKMS struct{}
+// GCPKMS - Google Clooud Platform KMS client
+// A wrapper for configuring gcloud, and consuming
+// their KMS service for encrypt/decrypt and key management/acls
+//
+// property keyname - the URI to the GCP KMS keyring/key
+//          eg: projects/sctl/locations/us/keyRings/sctl/cryptoKeys/sctl-dev
+type GCPKMS struct {
+	keyname string
+}
 
 // Encrypt -
-func (gkms GCPKMS) Encrypt(keyName string, plaintext []byte) ([]byte, error) {
+func (gkms *GCPKMS) Encrypt(plaintext []byte) ([]byte, error) {
 	// https://cloud.google.com/kms/docs/encrypt-decrypt#kms-howto-encrypt-go
 	ctx := context.Background()
 	client, err := cloudkms.NewKeyManagementClient(ctx)
@@ -27,16 +36,19 @@ func (gkms GCPKMS) Encrypt(keyName string, plaintext []byte) ([]byte, error) {
 
 	// Build the request.
 	req := &kmspb.EncryptRequest{
-		Name:      keyName,
+		Name:      gkms.keyname,
 		Plaintext: plaintext,
 	}
 	// Call the API.
 	resp, err := client.Encrypt(ctx, req)
-	return resp.Ciphertext, err
+	if err != nil {
+		return nil, err
+	}
+	return resp.Ciphertext, nil
 }
 
 // Decrypt -
-func (gkms GCPKMS) Decrypt(keyName string, ciphertext []byte) ([]byte, error) {
+func (gkms *GCPKMS) Decrypt(ciphertext []byte) ([]byte, error) {
 	ctx := context.Background()
 	client, err := cloudkms.NewKeyManagementClient(ctx)
 	if err != nil {
@@ -45,7 +57,7 @@ func (gkms GCPKMS) Decrypt(keyName string, ciphertext []byte) ([]byte, error) {
 
 	// Build the request.
 	req := &kmspb.DecryptRequest{
-		Name:       keyName,
+		Name:       gkms.keyname,
 		Ciphertext: ciphertext,
 	}
 	// Call the API.
@@ -59,21 +71,10 @@ func (gkms GCPKMS) Decrypt(keyName string, ciphertext []byte) ([]byte, error) {
 	return resp.Plaintext, err
 }
 
-/* Note as of the time of import, I'm not sure how I would properly stub out the KMS key service.
-   I'm going to leave these wrappers + the interface as a means to stub out and provide support
-   for other KMS providers like AWS in a future release.
-
-   TODO: Add integration tests, as unit tests are proving questionable.
-*/
-
-// encrypt will encrypt the input plaintext with the specified symmetric key
-// example keyName: "projects/PROJECT_ID/locations/global/keyRings/RING_ID/cryptoKeys/KEY_ID"
-func encryptSymmetric(keyName string, plaintext []byte, kmsClient KMS) ([]byte, error) {
-	return kmsClient.Encrypt(keyName, plaintext)
-}
-
-// decrypt will decrypt the input ciphertext bytes using the specified symmetric key
-// example keyName: "projects/PROJECT_ID/locations/global/keyRings/RING_ID/cryptoKeys/KEY_ID"
-func decryptSymmetric(keyName string, ciphertext []byte, kmsClient KMS) ([]byte, error) {
-	return kmsClient.Decrypt(keyName, ciphertext)
+// NewGCPKMS factory method to create a new Google CloudPlatform KMS client
+// for use in the encrypt/decrypt workflow
+func NewGCPKMS(keyname string) GCPKMS {
+	return GCPKMS{
+		keyname: keyname,
+	}
 }
