@@ -11,8 +11,8 @@ import (
 // two methods of Encrypt and Decrypt, that return byte slices of plaintext/cyphertext respectively and
 // any unwrapped errors that surface from the operation.
 type KMS interface {
-	Encrypt(string, []byte) ([]byte, error)
-	Decrypt(string, []byte) ([]byte, error)
+	Encrypt([]byte) ([]byte, error)
+	Decrypt([]byte) ([]byte, error)
 }
 
 // GCPKMS is a Google Cloud Platform KMS client
@@ -72,8 +72,8 @@ func (gkms *GCPKMS) Decrypt(ciphertext []byte) ([]byte, error) {
 }
 
 // NewGCPKMS creates a new KMS client for Google Cloud Platform.
-func NewGCPKMS(keyname string) GCPKMS {
-	return GCPKMS{
+func NewGCPKMS(keyname string) KMS {
+	return &GCPKMS{
 		keyname: keyname,
 	}
 }

@@ -68,7 +68,7 @@ func BuildContextualMenu() []cli.Command {
 				secretEncoding := ""
 				// determine if we need to base64 the raw text, defaults
 				// to true.
-				if c.Bool("no-decode") == true {
+				if c.Bool("no-decode") {
 					// skip encoding, encode as plain value
 					secretEncoding = "plain"
 				} else {
@@ -112,7 +112,7 @@ func BuildContextualMenu() []cli.Command {
 
 				err := validateContext(c, "send")
 				if err != nil {
-					log.Fatalf("%s", err)
+					log.Fatal(err)
 				}
 				var plaintext []byte
 
