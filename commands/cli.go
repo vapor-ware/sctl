@@ -5,9 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/urfave/cli"
-	"github.com/vapor-ware/sctl/cloud"
-	"github.com/vapor-ware/sctl/utils"
 	"io/ioutil"
 	"log"
 	"os"
@@ -15,6 +12,10 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/urfave/cli"
+	"github.com/vapor-ware/sctl/cloud"
+	"github.com/vapor-ware/sctl/utils"
 )
 
 // BuildContextualMenu - Assemble the CLI commands, subcommands, and flags
@@ -274,7 +275,7 @@ func validateContext(c *cli.Context, context string) error {
 	return nil
 }
 
-// stdinScan - read if we have data on STDIN and return to exection
+// stdinScan - read if we have data on STDIN and return to execution
 func stdinScan() []byte {
 	// Determine if we have data available on STDIN
 	stat, _ := os.Stdin.Stat()

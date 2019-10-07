@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/urfave/cli"
-	"github.com/vapor-ware/sctl/commands"
 	"log"
 	"os"
+
+	"github.com/urfave/cli"
+	"github.com/vapor-ware/sctl/commands"
 )
 
 func main() {

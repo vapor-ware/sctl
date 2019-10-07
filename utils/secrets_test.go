@@ -35,4 +35,13 @@ func TestSecretAddRotation(t *testing.T) {
 		Name:       "TOADD",
 		Cyphertext: "123TOADD",
 	})
+
+	if len(s) != 1 {
+		t.Errorf("Unexpected length, Wanted: 1  Got: %v", len(s))
+	}
+
+	if s[0].Cyphertext != "123TOADD" {
+		t.Errorf("Unexpected Cyphertext, Wanted: 123TOADD  Got: %s", s[0].Cyphertext)
+	}
+
 }

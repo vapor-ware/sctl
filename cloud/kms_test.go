@@ -2,9 +2,11 @@
 
 package cloud
 
-import "testing"
-import "reflect"
-import "os"
+import (
+	"os"
+	"reflect"
+	"testing"
+)
 
 const defaultTestKey = "projects/vapor-staging/locations/us/keyRings/sctl/cryptoKeys/sctl-dev"
 

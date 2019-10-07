@@ -10,7 +10,7 @@ import (
 	"runtime"
 )
 
-// UserInput - Display a prompt on STDOUT for data to be encrypted
+// UserInput will Display a prompt on STDOUT for data to be encrypted.
 // reads from STDIN until EOF character is received.
 // returns []byte encoded array of STDIN input.
 func UserInput() []byte {
@@ -35,7 +35,7 @@ func UserInput() []byte {
 	return bytes.TrimRight(lines, "\r\n")
 }
 
-// EOFKeySequenceText is a helper to determine the currently running
+// eofKeySequenceText is a helper to determine the currently running
 // operating system and returns the correct EOF key presses, which vary
 // between darwin, linux, and windows.
 func eofKeySequenceText() string {
@@ -51,7 +51,7 @@ func eofKeySequenceText() string {
 	return "Ctrl+D"
 }
 
-// AddSecret - Recalls state if present, and appends a secret to the state file.
+// AddSecret Recalls state if present, and appends a secret to the state file
 func AddSecret(toAdd Secret) {
 	ism := NewIOStateManager(defaultFile)
 	secrets, _ := ism.ReadState()
@@ -60,7 +60,7 @@ func AddSecret(toAdd Secret) {
 	ism.WriteState(secrets)
 }
 
-// ReadSecrets - Wrapper to return an array of Secrets for processing
+// ReadSecrets is a Wrapper to return an array of Secrets for processing
 func ReadSecrets() Secrets {
 	ism := NewIOStateManager(defaultFile)
 	secrets, err := ism.ReadState()
@@ -70,7 +70,7 @@ func ReadSecrets() Secrets {
 	return secrets
 }
 
-// DeleteSecret - Wrapper to remove a secret from state
+// DeleteSecret is a Wrapper to remove a secret from state
 // toRemove - string - named key of the secret to eject from the state storage
 func DeleteSecret(toRemove string) {
 	ism := NewIOStateManager(defaultFile)

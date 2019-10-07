@@ -84,20 +84,3 @@ func TestStateManagementWriter(t *testing.T) {
 	}
 
 }
-
-// func TestIOStateManagerRead(t *testing.T) {
-// 	iosm := NewIOStateManager("../testdata/scuttle_integration.json")
-
-// 	secrets, err := iosm.ReadState()
-// 	if err != nil {
-// 		t.Fatalf("Unexpected error, Expected: nil Got: %s", err)
-// 	}
-
-// 	if len(secrets) != 2 {
-// 		t.Fatalf("Unexpected Length. Expected: 2  Got: %v", len(secrets))
-// 	}
-
-// 	if secrets[1].Name != "DOUBLEMINT" {
-// 		t.Fatalf("Unexpected secret - Expected: DOUBLEMINT  Got: %s", secrets[1].Name)
-// 	}
-// }
