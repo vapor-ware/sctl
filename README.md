@@ -52,7 +52,7 @@ brew install google-cloud-sdk
 
 **Pipeline Releases**:
 
-> Currently only x86, linux/mac are published.
+> Currently only x86 arch, linux/mac/windows are published.
 
 Download the latest stable release from the [Releases](https://github.com/vapor-ware/sctl/releases)
 listing for your platform/arch.
@@ -112,7 +112,6 @@ $ cat .scuttle.json
 
 Several tools like this have come before; sctl offers a polite hat-tip to
 - [99designs/aws-vault](https://github.com/99designs/aws-vault)
-- [banksimple/knox](#)
 - [bitnami/sealed-secrets](https://github.com/bitnami/sealed-secrets)
 
 ## Reference Reading
