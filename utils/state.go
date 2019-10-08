@@ -28,6 +28,11 @@ func (ism IOStateManager) ReadState() (Secrets, error) {
 	file, err := ioutil.ReadFile(ism.filename)
 	// Decode the json into a slice of Secret Structs
 	if err != nil {
+		if os.IsNotExist(err) {
+			// The file doesn't exist, dont raise an error and return empty data to account
+			// for first-run without a state serialized to disk.
+			return []Secret{}, nil
+		}
 		return nil, err
 	}
 	var data []Secret

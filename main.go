@@ -12,7 +12,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "1.0.0-rc5"
+	app.Version = "1.0.0-rc6"
 
 	app.Commands = commands.BuildContextualMenu()
 
