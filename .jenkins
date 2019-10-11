@@ -19,7 +19,7 @@ pipeline {
     }
     stage('Test') {
       environment {
-          GOOGLE_APPLICATION_CREDENTIAL = credentials('sctl-ci-credential')
+          GOOGLE_APPLICATION_CREDENTIALS = credentials('sctl-ci-credential')
           SCTL_KEY ="projects/vapor-staging/locations/us/keyRings/sctl/cryptoKeys/sctl-dev"
       }
       steps {
