@@ -30,7 +30,7 @@ func BuildContextualMenu() []cli.Command {
 				cli.StringFlag{
 					Name:   "key",
 					EnvVar: "SCTL_KEY",
-					Usage:  "GCloud KMS Key URI",
+					Usage:  "KMS Key URI",
 				},
 				cli.BoolFlag{
 					Name:  "no-decode",
@@ -99,13 +99,13 @@ func BuildContextualMenu() []cli.Command {
 			},
 		},
 		{
-			Name:  "send",
-			Usage: "Encode/Decode a secret for copy/paste without storing in state",
+			Name:  "encrypt",
+			Usage: "Encrypt a secret for copy/paste without storing in state",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key",
 					EnvVar: "SCTL_KEY",
-					Usage:  "GCloud KMS Key URI",
+					Usage:  "KMS Key URI",
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -132,24 +132,21 @@ func BuildContextualMenu() []cli.Command {
 				}
 				encoded := base64.StdEncoding.EncodeToString(cypher)
 
-				fmt.Println("Hello, I've shared some data with you with sctl! https://github.com/vapor-ware/sctl")
-				fmt.Println("Once installed, run the following commands to view this sensitive information")
-				fmt.Println("")
 				fmt.Println("```")
-				cmd := fmt.Sprintf("sctl receive --key=%s %s", c.String("key"), encoded)
+				cmd := fmt.Sprintf("sctl decrypt --key=%s %s", c.String("key"), encoded)
 				fmt.Println(cmd)
 				fmt.Println("```")
 				return nil
 			},
 		},
 		{
-			Name:  "receive",
-			Usage: "Read a sent secret from sctl send",
+			Name:  "decrypt",
+			Usage: "Decrypt an encrypted secret",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key",
 					EnvVar: "SCTL_KEY",
-					Usage:  "Gcloud KMS Key URI",
+					Usage:  "KMS Key URI",
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -202,7 +199,7 @@ func BuildContextualMenu() []cli.Command {
 				cli.StringFlag{
 					Name:   "key",
 					EnvVar: "SCTL_KEY",
-					Usage:  "GCloud KMS Key URI",
+					Usage:  "KMS Key URI",
 				},
 			},
 			Action: func(c *cli.Context) error {
