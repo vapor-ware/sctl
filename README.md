@@ -108,6 +108,27 @@ $ cat .scuttle.json
 # sctl run helmfile diff
 ```
 
+### Rotate state / re-key
+
+As you deprecate/disable older KMS key revisions, it can be prudent to migrate
+a statefile of encrypted secrets. This can be a daunting task if undertaken one
+by one. To ease the migration between versions (and different keys). The re-key
+function was introduced in 1.0.0.
+
+```
+sctl re-key --newKey projects/new-project/locations/us/keyRings/new-keyring/cryptoKeys/new-key
+
+Rotated entry for FOO
+Rotated entry for BAR
+```
+
+Note: this operation attempts to be ATOMIC, and if an error occurs, the state
+may be incompletely translated. This can be confirmed if the sctl state file
+is versioned in VCS where you can easily diff the contents.
+
+Note: the base64 data, and createdOn date's should be different if the entry
+was updated.
+
 ## Acknowledgements
 
 Several tools like this have come before; sctl offers a polite hat-tip to
