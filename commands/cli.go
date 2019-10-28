@@ -99,6 +99,33 @@ func BuildContextualMenu() []cli.Command {
 			},
 		},
 		{
+			Name:  "decrypt",
+			Usage: "Decrypt an encrypted secret",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:   "key",
+					EnvVar: "SCTL_KEY",
+					Usage:  "KMS Key URI",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				if len(c.Args()) >= 1 {
+					decoded, err := base64.StdEncoding.DecodeString(c.Args().First())
+					if err != nil {
+						log.Fatal(err)
+					}
+					client := cloud.NewGCPKMS(c.String("key"))
+					cypher, err := client.Decrypt(decoded)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					fmt.Println(string(cypher))
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "encrypt",
 			Usage: "Encrypt a secret for copy/paste without storing in state",
 			Flags: []cli.Flag{
@@ -140,42 +167,6 @@ func BuildContextualMenu() []cli.Command {
 			},
 		},
 		{
-			Name:  "decrypt",
-			Usage: "Decrypt an encrypted secret",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:   "key",
-					EnvVar: "SCTL_KEY",
-					Usage:  "KMS Key URI",
-				},
-			},
-			Action: func(c *cli.Context) error {
-				if len(c.Args()) >= 1 {
-					decoded, err := base64.StdEncoding.DecodeString(c.Args().First())
-					if err != nil {
-						log.Fatal(err)
-					}
-					client := cloud.NewGCPKMS(c.String("key"))
-					cypher, err := client.Decrypt(decoded)
-					if err != nil {
-						log.Fatal(err)
-					}
-
-					fmt.Println(string(cypher))
-				}
-				return nil
-			},
-		},
-		{
-			Name:  "rm",
-			Usage: "Delete a secret from state",
-			Action: func(c *cli.Context) error {
-				secretName := strings.ToUpper(c.Args().First())
-				utils.DeleteSecret(secretName)
-				return nil
-			},
-		},
-		{
 			Name:  "list",
 			Usage: "list known secrets",
 			Action: func(c *cli.Context) error {
@@ -188,6 +179,88 @@ func BuildContextualMenu() []cli.Command {
 				for _, k := range knownKeys {
 					fmt.Println(k)
 				}
+				return nil
+			},
+		},
+		{
+			Name:  "rekey",
+			Usage: "Re-encrypt a statefile to a new key-version",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:   "key",
+					EnvVar: "SCTL_KEY",
+					Usage:  "KMS Key URI",
+				},
+				cli.StringFlag{
+					Name:  "newkey",
+					Usage: "(optional) New KMS Key URI",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				sctlKey := c.String("key")
+				newKey := c.String("newkey")
+
+				secrets := utils.ReadSecrets()
+				client := cloud.NewGCPKMS(sctlKey)
+
+				for _, secret := range secrets {
+					// uncan the base64
+					decoded, err := base64.StdEncoding.DecodeString(secret.Cyphertext)
+					if err != nil {
+						log.Fatalf("CLI - DECODING - %s", err)
+					}
+					decrypted, err := client.Decrypt(decoded)
+					if err != nil {
+						log.Fatalf("CLI - DECRYPT - %s", err)
+					}
+
+					if newKey != "" {
+						// Init a KMS client
+						newClient := cloud.NewGCPKMS(newKey)
+
+						newCypher, err := newClient.Encrypt(decrypted)
+						if err != nil {
+							log.Fatal(err)
+						}
+						// re-encode the binary data we got back.
+						encoded := base64.StdEncoding.EncodeToString(newCypher)
+						toAdd := utils.Secret{
+							Name:       strings.ToUpper(secret.Name),
+							Cyphertext: encoded,
+							Created:    time.Now(),
+							Encoding:   secret.Encoding,
+						}
+
+						utils.AddSecret(toAdd)
+						continue
+					}
+
+					newCypher, err := client.Encrypt(decrypted)
+					if err != nil {
+						log.Fatal(err)
+					}
+					// re-encode the binary data we got back.
+					encoded := base64.StdEncoding.EncodeToString(newCypher)
+
+					toAdd := utils.Secret{
+						Name:       strings.ToUpper(secret.Name),
+						Cyphertext: encoded,
+						Created:    time.Now(),
+						Encoding:   secret.Encoding,
+					}
+
+					utils.AddSecret(toAdd)
+
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "rm",
+			Usage: "Delete a secret from state",
+			Action: func(c *cli.Context) error {
+				secretName := strings.ToUpper(c.Args().First())
+				utils.DeleteSecret(secretName)
 				return nil
 			},
 		},
