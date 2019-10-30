@@ -10,8 +10,12 @@ require (
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.10 // indirect
+	github.com/pkg/errors v0.8.1
 	github.com/tcnksm/go-latest v0.0.0-20170313132115-e3007ae9052e
 	github.com/urfave/cli v1.22.1
+	github.com/zalando/go-keyring v0.0.0-20190913082157-62750a1ff80d
 	golang.org/x/net v0.0.0-20191105084925-a882066a44e0 // indirect
+	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	google.golang.org/api v0.9.0
 	google.golang.org/genproto v0.0.0-20191002211648-c459b9ce5143
 )

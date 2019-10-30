@@ -14,7 +14,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "1.0.0"
+	app.Version = "1.1.0"
 
 	// TODO (etd): This functionality could be moved to utils or elsewhere, but since the
 	//   current version is defined here, we need to be within the app scope to get to it.

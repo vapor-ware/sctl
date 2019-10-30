@@ -4,6 +4,8 @@ import (
 	"context"
 
 	cloudkms "cloud.google.com/go/kms/apiv1"
+	"github.com/vapor-ware/sctl/credentials"
+	"google.golang.org/api/option"
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 )
 
@@ -25,15 +27,25 @@ type GCPKMS struct {
 	keyname string
 }
 
-// Encrypt invokes GCP KMS to encrypt the data. Returns a bytestream of binary data.
-func (gkms *GCPKMS) Encrypt(plaintext []byte) ([]byte, error) {
-	// https://cloud.google.com/kms/docs/encrypt-decrypt#kms-howto-encrypt-go
-	ctx := context.Background()
-	client, err := cloudkms.NewKeyManagementClient(ctx)
+// Construct and return a GoogleClient from JSON
+func (gkms *GCPKMS) client(ctx context.Context) (*cloudkms.KeyManagementClient, error) {
+	var cred credentials.GoogleCredential
+
+	// This does an abstract load of the credential. If os.env.GoogleApplicationCredential exists, it
+	// overloads any client logic and uses that. Otherwise it attempts to load the default credential
+	credentialJSON, err := cred.JSON()
 	if err != nil {
 		return nil, err
 	}
 
+	return cloudkms.NewKeyManagementClient(ctx, option.WithCredentialsJSON(credentialJSON))
+}
+
+// Encrypt invokes GCP KMS to encrypt the data. Returns a bytestream of binary data.
+func (gkms *GCPKMS) Encrypt(plaintext []byte) ([]byte, error) {
+	ctx := context.Background()
+
+	client, err := gkms.client(ctx)
 	// Build the request.
 	req := &kmspb.EncryptRequest{
 		Name:      gkms.keyname,
@@ -50,10 +62,7 @@ func (gkms *GCPKMS) Encrypt(plaintext []byte) ([]byte, error) {
 // Decrypt invokes the GCP KMS API to decrypt ciphertext.
 func (gkms *GCPKMS) Decrypt(ciphertext []byte) ([]byte, error) {
 	ctx := context.Background()
-	client, err := cloudkms.NewKeyManagementClient(ctx)
-	if err != nil {
-		return nil, err
-	}
+	client, err := gkms.client(ctx)
 
 	// Build the request.
 	req := &kmspb.DecryptRequest{

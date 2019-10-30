@@ -15,8 +15,12 @@ import (
 
 	"github.com/urfave/cli"
 	"github.com/vapor-ware/sctl/cloud"
+	"github.com/vapor-ware/sctl/credentials"
 	"github.com/vapor-ware/sctl/utils"
 )
+
+const statecategory = "State management"
+const quickcategory = "Quick encrypt"
 
 // BuildContextualMenu - Assemble the CLI commands, subcommands, and flags
 // Handles the majority of the CLI interface.
@@ -26,6 +30,7 @@ func BuildContextualMenu() []cli.Command {
 		{
 			Name:  "add",
 			Usage: "Add a secret",
+			Category: statecategory,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key",
@@ -55,7 +60,7 @@ func BuildContextualMenu() []cli.Command {
 						plaintext = []byte(c.Args()[1])
 					} else {
 						// Everything else has failed finally resort to prompting for manual input
-						plaintext = utils.UserInput()
+						plaintext = utils.UserInput("Enter the data you want to encrypt.")
 						// if we have nothing at this phase, log an error and abort
 						if len(plaintext) == 0 {
 							log.Fatal("Empty input detected. Aborting")
@@ -99,8 +104,51 @@ func BuildContextualMenu() []cli.Command {
 			},
 		},
 		{
-			Name:  "decrypt",
-			Usage: "Decrypt an encrypted secret",
+			Name:  "credential",
+			Usage: "Manage cloud credentials",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "cloud",
+					Usage: "cloud, must be one of [GCP]",
+					Value: "GCP",
+				},
+			},
+			Subcommands: []cli.Command{
+				{
+					Name:  "add",
+					Usage: "Add a default credential",
+					Action: func(c *cli.Context) error {
+						var cred credentials.GoogleCredential
+						conf := utils.ReadConfiguration()
+						conf.Init()
+
+						if len(conf.GoogleClient.Data) == 0 {
+							clientData := utils.UserInput("Enter your organizations Sctl google client JSON")
+							conf.GoogleClient = utils.Client{Data: string(clientData)}
+						}
+
+						err := cred.Login(conf, "default")
+						conf.Save()
+						if err != nil {
+							log.Fatal(err)
+						}
+						return nil
+					},
+				},
+				{
+					Name:  "rm",
+					Usage: "Remove default credential",
+					Action: func(c *cli.Context) error {
+						var cred credentials.GoogleCredential
+						return cred.DeleteCredential("default")
+					},
+				},
+			},
+		},
+		{
+			Name:     "decrypt",
+			Usage:    "Decrypt an encrypted secret",
+			Category: quickcategory,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key",
@@ -126,8 +174,9 @@ func BuildContextualMenu() []cli.Command {
 			},
 		},
 		{
-			Name:  "encrypt",
-			Usage: "Encrypt a secret for copy/paste without storing in state",
+			Name:     "encrypt",
+			Usage:    "Encrypt a secret for copy/paste without storing in state",
+			Category: quickcategory,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key",
@@ -146,7 +195,7 @@ func BuildContextualMenu() []cli.Command {
 				// attempt stdin scan, SEND should be pipeable for things like cat'ing a file.
 				plaintext = stdinScan()
 				if plaintext == nil {
-					plaintext = utils.UserInput()
+					plaintext = utils.UserInput("Enter the data you want to encrypt.")
 				}
 				if len(plaintext) == 0 {
 					log.Fatal("Empty input detected. Aborting")
@@ -167,8 +216,9 @@ func BuildContextualMenu() []cli.Command {
 			},
 		},
 		{
-			Name:  "list",
-			Usage: "List known secrets",
+			Name:     "list",
+			Usage:    "List known secrets",
+			Category: statecategory,
 			Action: func(c *cli.Context) error {
 				secrets := utils.ReadSecrets()
 				var knownKeys []string
@@ -183,8 +233,9 @@ func BuildContextualMenu() []cli.Command {
 			},
 		},
 		{
-			Name:  "rekey",
-			Usage: "Re-encrypt a statefile to a new key-version",
+			Name:     "rekey",
+			Usage:    "Re-encrypt a statefile to a new key-version",
+			Category: statecategory,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key",
@@ -256,8 +307,9 @@ func BuildContextualMenu() []cli.Command {
 			},
 		},
 		{
-			Name:  "rm",
-			Usage: "Delete a secret from state",
+			Name:     "rm",
+			Usage:    "Delete a secret from state",
+			Category: statecategory,
 			Action: func(c *cli.Context) error {
 				secretName := strings.ToUpper(c.Args().First())
 				utils.DeleteSecret(secretName)
@@ -267,12 +319,17 @@ func BuildContextualMenu() []cli.Command {
 		{
 			Name:           "run",
 			Usage:          "Run a command with secrets exported as env",
+			Category:       statecategory,
 			SkipArgReorder: true,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key",
 					EnvVar: "SCTL_KEY",
 					Usage:  "KMS Key URI",
+				},
+				cli.BoolFlag{
+					Name:  "interactive, i",
+					Usage: "Run the command in an interactive session",
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -311,6 +368,9 @@ func BuildContextualMenu() []cli.Command {
 				}
 				cmd.Stdout = os.Stdout
 				cmd.Stderr = os.Stderr
+				if c.Bool("interactive") {
+					cmd.Stdin = os.Stdin
+				}
 				err := cmd.Run()
 				if err != nil {
 					log.Fatal(err)

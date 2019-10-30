@@ -8,3 +8,5 @@ bin/**
 testdata/test_writer_temp.json
 coverage.out
 .idea/
+.vscode
+/*.json
