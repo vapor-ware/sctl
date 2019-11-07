@@ -13,7 +13,7 @@ pipeline {
     stage('Lint') {
       steps {
         container('golang') {
-          sh 'golint -set_exit_status'
+          sh 'golint -set_exit_status ./...'
         }
       }
     }
