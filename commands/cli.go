@@ -25,7 +25,7 @@ func BuildContextualMenu() []cli.Command {
 	return []cli.Command{
 		{
 			Name:  "add",
-			Usage: "add secret",
+			Usage: "Add a secret",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key",
@@ -168,7 +168,7 @@ func BuildContextualMenu() []cli.Command {
 		},
 		{
 			Name:  "list",
-			Usage: "list known secrets",
+			Usage: "List known secrets",
 			Action: func(c *cli.Context) error {
 				secrets := utils.ReadSecrets()
 				var knownKeys []string
@@ -193,7 +193,7 @@ func BuildContextualMenu() []cli.Command {
 				},
 				cli.StringFlag{
 					Name:  "newkey",
-					Usage: "(optional) New KMS Key URI",
+					Usage: "New KMS Key URI (optional)",
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -266,7 +266,7 @@ func BuildContextualMenu() []cli.Command {
 		},
 		{
 			Name:           "run",
-			Usage:          "run a command with secrets exported as env",
+			Usage:          "Run a command with secrets exported as env",
 			SkipArgReorder: true,
 			Flags: []cli.Flag{
 				cli.StringFlag{
