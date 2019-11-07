@@ -40,12 +40,6 @@ brew tap vapor-ware/formula
 brew install vapor-ware/formula/sctl
 ```
 
-
-You'll also need the google cloud sdk to do stuff with kms using scuttle
-```
-brew install google-cloud-sdk
-```
-
 **Snap Packages**:
 > We tried snaps, at this time its not a suitable release channel for sctl.
 > We are open to attempting again in the future.
@@ -77,11 +71,20 @@ go get -u github.com/vapor-ware/sctl
 
 Configuration consists of 2 steps:
 
-- set your default google cloud application credentials
-- set the default KMS key for sctl to use
 
+#### Authentication
+You can configure sctl's authentication in one of two ways.
+
+1) `GOOGLE_APPLICATION_CREDENTIALS` - via env. You set this environment variable to a filepath containing your credentials. Which can be any serviceAccount or authorized User for example.
+
+2) `sctl credential add` will prompt you for a client configuration JSON. Ask your sctl administrator to provide this value if you're unsure what to enter. Once input, a link will be output to your terminal to visit. Open the link, log in to google, and Grant sctl's KMS scope authentication request. Copy/paste the resulting authorization code back into your terminal.
+
+#### Key Configuration
+
+Optionally, you may set an ENV var to provide the value for your key parameter. This is useful if you
+work in a small department and use the same key consistently. Otherwise this step may be skipped and you can pass the `--key` flag to any command that supports it.
+ 
 ```
-gcloud auth application-default login
 export SCTL_KEY=projects/my-project/locations/us/keyRings/my-keyring/cryptoKeys/my-key
 ```
 

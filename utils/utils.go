@@ -13,10 +13,13 @@ import (
 // UserInput will Display a prompt on STDOUT for data to be encrypted.
 // reads from STDIN until EOF character is received.
 // returns []byte encoded array of STDIN input.
-func UserInput() []byte {
+func UserInput(message string) []byte {
+	if message == "" {
+		message = "Enter the data you want to encrypt."
+	}
 	// Read STDIN (keyboard, interactive) until the user sends a manual EOF
 	// with CTRL+D on WIN keyboards, CMD+D on mac.
-	fmt.Printf("Enter the data you want to encrypt. END with %s\n", eofKeySequenceText())
+	fmt.Printf("%s. END with %s\n", message, eofKeySequenceText())
 	rdr := bufio.NewReader(os.Stdin)
 	var lines []byte
 	for {
