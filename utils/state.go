@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // defaultFile default filepath when no override is presented to the state
@@ -54,4 +56,45 @@ func NewIOStateManager(filename string) IOStateManager {
 		return IOStateManager{filename: filename}
 	}
 	return IOStateManager{filename: defaultFile}
+}
+
+// VersionedLoader recalls V2 structs from serialized json on disk
+type VersionedLoader struct {
+	Filepath string
+}
+
+// ReadState Attempts to unserialize a V2 secret envelope. If it encounters an error unmarshalling
+// the data structure, it will fall back and attempt to initialize a new V2 secret envelope, and populate
+// with what we presume to be a V1 format. If that fails, we fail fatally.
+func (vl VersionedLoader) ReadState() (V2, error) {
+	data, err := ioutil.ReadFile(vl.Filepath)
+	if err != nil {
+		return V2{}, err
+	}
+	var envelope V2
+	err = json.Unmarshal(data, &envelope)
+	if err != nil {
+		// Try loading from V1 into this struct as a fallback case
+		log.Debug("Falling back to V1 parser")
+		ism := NewIOStateManager(vl.Filepath)
+		finalAttempt, werr := ism.ReadState()
+		if werr != nil {
+			return V2{}, werr
+		}
+		envelope.Secrets = finalAttempt
+		return envelope, nil
+	}
+	return envelope, nil
+}
+
+// NewVersionedLoader is a factory method to instantiate new VersionedLoaders consistently.
+// if no filepath is provided, it will default to ".scuttle.json"
+func NewVersionedLoader(filepath string) VersionedLoader {
+	var loader VersionedLoader
+	if filepath == "" {
+		loader.Filepath = defaultFile
+		return loader
+	}
+	loader.Filepath = filepath
+	return loader
 }

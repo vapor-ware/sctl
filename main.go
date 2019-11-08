@@ -1,8 +1,9 @@
 package main
 
 import (
-	"log"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/fatih/color"
 	"github.com/tcnksm/go-latest"
@@ -14,7 +15,22 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "1.1.0"
+	app.Version = "1.2.0"
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:   "debug",
+			EnvVar: "SCTL_DEBUG",
+			Usage:  "Enable debug logging statements",
+		},
+	}
+
+	app.Before = func(c *cli.Context) error {
+		// Allow debugging of the config loading process
+		if c.Bool("debug") {
+			log.SetLevel(log.DebugLevel)
+		}
+		return nil
+	}
 
 	// TODO (etd): This functionality could be moved to utils or elsewhere, but since the
 	//   current version is defined here, we need to be within the app scope to get to it.

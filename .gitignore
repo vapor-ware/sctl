@@ -10,3 +10,4 @@ coverage.out
 .idea/
 .vscode
 /*.json
+utils/.scuttle.json

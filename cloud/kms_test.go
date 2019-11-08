@@ -16,9 +16,6 @@ func validateTestEnv(t *testing.T) {
 	if len(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")) == 0 {
 		t.Skip("Skipping - Missing ENV GOOGLE_APPLICATION_CREDENTIALS")
 	}
-	if len(os.Getenv("SCTL_KEY")) == 0 {
-		t.Skip("Skipping - Missing ENV SCTL_KEY")
-	}
 }
 
 // Expensive KMS testing that actually invokes the KMS API. In order for these integration tests
@@ -26,7 +23,15 @@ func validateTestEnv(t *testing.T) {
 // the actor of those credentials must be able to access the KMS key declared.
 func TestGCPKMSEncryptDecryptIntegration(t *testing.T) {
 	validateTestEnv(t)
-	client := NewGCPKMS(os.Getenv("SCTL_KEY"))
+	key, found := os.LookupEnv("SCTL_KEY")
+
+	var client KMS
+	if found != true {
+		client = NewGCPKMS(defaultTestKey)
+	} else {
+		client = NewGCPKMS(key)
+	}
+
 	cypher, err := client.Encrypt([]byte("hello"))
 	if err != nil {
 		t.Fatalf("Unexpected error. Wanted: nil Got: %s", err)
