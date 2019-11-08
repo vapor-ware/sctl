@@ -99,7 +99,7 @@ func BuildContextualMenu() []cli.Command {
 					Encoding:   secretEncoding,
 				}
 
-				utils.AddSecret(toAdd, c.String("key"))
+				utils.AddSecret(toAdd, c.String("key"), true)
 
 				return nil
 			},
@@ -300,8 +300,10 @@ func BuildContextualMenu() []cli.Command {
 							Created:    time.Now(),
 							Encoding:   secret.Encoding,
 						}
-
-						utils.AddSecret(toAdd, newKey)
+						log.Debug("Saving new secret: ", toAdd.Name, " With key: ", newKey)
+						// ReKeying with a new secret is an explicit process. Invoke addSecret without
+						// key validation
+						utils.AddSecret(toAdd, newKey, false)
 						continue
 					}
 
@@ -319,7 +321,7 @@ func BuildContextualMenu() []cli.Command {
 						Encoding:   secret.Encoding,
 					}
 
-					utils.AddSecret(toAdd, sctlKey)
+					utils.AddSecret(toAdd, sctlKey, true)
 
 				}
 				return nil

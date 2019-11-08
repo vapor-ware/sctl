@@ -53,7 +53,7 @@ func eofKeySequenceText() string {
 }
 
 // AddSecret Recalls state if present, and appends a secret to the state file
-func AddSecret(toAdd Secret, keyURI string) {
+func AddSecret(toAdd Secret, keyURI string, keyCheck bool) {
 	envelope := V2{Filepath: defaultFile}
 	envelope.KeyIdentifier = keyURI
 	nvl := NewVersionedLoader(defaultFile)
@@ -66,10 +66,14 @@ func AddSecret(toAdd Secret, keyURI string) {
 		return
 	}
 
-	// If we load contents and the user has a different keyURI, intercept
-	// and warn before they save a multi-key sealed envelope of secrets
-	if !contents.SameKey(keyURI) {
-		log.Fatalf("Key mismatch detected, Refusing to save with different key identifiers. Envelope Provided: %s  User Provided: %s", contents.KeyIdentifier, keyURI)
+	// Keycheck overrides if we bother with the key evaluation. This is problematic
+	// when doing re-key operations on a post-v2 migrated envelope.
+	if keyCheck {
+		// If we load contents and the user has a different keyURI, intercept
+		// and warn before they save a multi-key sealed envelope of secrets
+		if !contents.SameKey(keyURI) {
+			log.Fatalf("Key mismatch detected, Refusing to save with different key identifiers. Envelope Provided: %s  User Provided: %s", contents.KeyIdentifier, keyURI)
+		}
 	}
 
 	// Handle any other parsing errors in a Fatal fashion

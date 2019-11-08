@@ -9,29 +9,6 @@ import (
 	"time"
 )
 
-// TestUtilIntegration validates the full functionality of secrets, adding, and removing.
-func TestUtilIntegration(t *testing.T) {
-	hush := Secret{
-		Name:       "TEST",
-		Cyphertext: "TESTCASEADDSECRET",
-		Created:    time.Now(),
-		Encoding:   "plain",
-	}
-
-	AddSecret(hush, "")
-	state, _, _ := ReadSecrets()
-	fmt.Printf("%+v", state)
-	if len(state) != 1 {
-		t.Errorf("Unexpected Slice Length, Wanted: 1, Got: %v", len(state))
-	}
-	DeleteSecret("TEST")
-	state, _, _ = ReadSecrets()
-
-	if len(state) != 0 {
-		t.Errorf("Unexpected Slice Length, Wanted: 0, Got: %v", len(state))
-	}
-}
-
 func TestEOFKeySequenceText(t *testing.T) {
 	current := eofKeySequenceText()
 
@@ -46,6 +23,8 @@ func TestEOFKeySequenceText(t *testing.T) {
 	}
 }
 
+// Test the complex function of the AddSecret helper method in a temporary path to ensure
+// we have validated the "from scratch" use case.
 func TestAddSecretHelper(t *testing.T) {
 
 	// Test New Secret in New Context
@@ -65,13 +44,19 @@ func TestAddSecretHelper(t *testing.T) {
 		Encoding:   "plain",
 	}
 
-	AddSecret(hush, "")
+	AddSecret(hush, "", true)
 	state, _, _ := ReadSecrets()
 	fmt.Printf("%+v", state)
 	if len(state) != 1 {
 		t.Errorf("Unexpected Slice Length, Wanted: 1, Got: %v", len(state))
 	}
 
-	os.Chdir(currPath)
+	DeleteSecret("TEST")
+	state, _, _ = ReadSecrets()
 
+	if len(state) != 0 {
+		t.Errorf("Unexpected Slice Length, Wanted: 0, Got: %v", len(state))
+	}
+
+	os.Chdir(currPath)
 }
