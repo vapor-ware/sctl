@@ -47,10 +47,6 @@ func eofKeySequenceText() string {
 		return "Ctrl+Z and Enter"
 	}
 
-	if runtime.GOOS == "darwin" {
-		return "⌘+D"
-	}
-
 	return "Ctrl+D"
 }
 
