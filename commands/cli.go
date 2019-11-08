@@ -28,8 +28,8 @@ const quickcategory = "Quick encrypt"
 func BuildContextualMenu() []cli.Command {
 	return []cli.Command{
 		{
-			Name:  "add",
-			Usage: "Add a secret",
+			Name:     "add",
+			Usage:    "Add a secret",
 			Category: statecategory,
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -157,6 +157,11 @@ func BuildContextualMenu() []cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
+
+				verr := validateContext(c, "decrypt")
+				if verr != nil {
+					return verr
+				}
 				if len(c.Args()) >= 1 {
 					decoded, err := base64.StdEncoding.DecodeString(c.Args().First())
 					if err != nil {
@@ -186,13 +191,13 @@ func BuildContextualMenu() []cli.Command {
 			},
 			Action: func(c *cli.Context) error {
 
-				err := validateContext(c, "send")
+				err := validateContext(c, "encrypt")
 				if err != nil {
-					log.Fatal(err)
+					return err
 				}
 				var plaintext []byte
 
-				// attempt stdin scan, SEND should be pipeable for things like cat'ing a file.
+				// attempt stdin scan, encrypt should be pipeable for things like cat'ing a file.
 				plaintext = stdinScan()
 				if plaintext == nil {
 					plaintext = utils.UserInput("Enter the data you want to encrypt.")
@@ -333,7 +338,10 @@ func BuildContextualMenu() []cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				validateContext(c, "run")
+				verr := validateContext(c, "run")
+				if verr != nil {
+					return verr
+				}
 
 				var secrets []utils.Secret
 				var arguments []string = c.Args()
@@ -395,7 +403,7 @@ func validateContext(c *cli.Context, context string) error {
 		if c.Args().First() == "" {
 			return errors.New("Usage: sctl add SECRET_ALIAS")
 		}
-	case "default":
+	default:
 		if len(c.String("key")) == 0 {
 			return errors.New("Missing configuration for key")
 		}
