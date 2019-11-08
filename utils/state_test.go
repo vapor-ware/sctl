@@ -102,11 +102,12 @@ func TestVersionedLoader(t *testing.T) {
 		value []string
 	}{
 		{"V1 Valid Single", NewVersionedLoader("../testdata/test_single.json"), []string{"CiQArcZm2NqPRMBD38xkbUt0LDB3UPKTDq9bRPmZKRTw2B3Zv/ESOAClhb3LwQupwOSMn9K/GrBKlcBRwZorSqHFrKkM0i2yXjMYRG/hDgta2x4otKuAnpoxVCSxRiNY"}},
-		{"Valid Multiple", NewVersionedLoader("../testdata/test_integration.json"), []string{"CiQArcZm2It07gVRIxN091iI3S88Bemz+i7YYUb1LWJKd4kj9ccSMQClhb3LXy09yZJChRqnDTq+Ql5LNNoXmByltMN6WNJlAMD/9H2MLh5/hnhLm/lpPpM=", "CiQArcZm2OMpefBMf0KlBEprYw7UvAmlJxyuOAf8+avSe5l5QdwSPQClhb3LdTfq/FFjEDs7pXT/5P5Vq/81QIJaTQtNqOr7iVivDEdSXXC0OEvGJdQUK0QlHSVjULTMa4pP1ps="}},
+		{"V1 Valid Multiple", NewVersionedLoader("../testdata/test_integration.json"), []string{"CiQArcZm2It07gVRIxN091iI3S88Bemz+i7YYUb1LWJKd4kj9ccSMQClhb3LXy09yZJChRqnDTq+Ql5LNNoXmByltMN6WNJlAMD/9H2MLh5/hnhLm/lpPpM=", "CiQArcZm2OMpefBMf0KlBEprYw7UvAmlJxyuOAf8+avSe5l5QdwSPQClhb3LdTfq/FFjEDs7pXT/5P5Vq/81QIJaTQtNqOr7iVivDEdSXXC0OEvGJdQUK0QlHSVjULTMa4pP1ps="}},
 		// Test case for when sctl has removed all secrets, but a state file remains
 		{"V1 Valid Empty", NewVersionedLoader("../testdata/test_empty.json"), nil},
 		{"V2 Valid Single", NewVersionedLoader("../testdata/test_secret_v2.json"), []string{"0xD34DB33F"}},
 		{"V2 Valid Multiple", NewVersionedLoader("../testdata/test_secret_v2_multiple.json"), []string{"0xN00DL3S", "0xD34DB33F"}},
+		{"V2 Valid Empty", NewVersionedLoader("../testdata/test_secret_v2_empty.json"), nil},
 	}
 
 	for _, tt := range testTable {
