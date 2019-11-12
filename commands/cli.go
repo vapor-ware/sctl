@@ -6,12 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"sort"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/urfave/cli"
 	"github.com/vapor-ware/sctl/cloud"
@@ -98,7 +99,7 @@ func BuildContextualMenu() []cli.Command {
 					Encoding:   secretEncoding,
 				}
 
-				utils.AddSecret(toAdd)
+				utils.AddSecret(toAdd, c.String("key"), true)
 
 				return nil
 			},
@@ -225,7 +226,8 @@ func BuildContextualMenu() []cli.Command {
 			Usage:    "List known secrets",
 			Category: statecategory,
 			Action: func(c *cli.Context) error {
-				secrets := utils.ReadSecrets()
+				// TODO: Handle this error case with no secrets
+				secrets, _, _ := utils.ReadSecrets()
 				var knownKeys []string
 				for _, secret := range secrets {
 					knownKeys = append(knownKeys, secret.Name)
@@ -253,12 +255,24 @@ func BuildContextualMenu() []cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				sctlKey := c.String("key")
+
+				var sctlKey string
 				newKey := c.String("newkey")
 
-				secrets := utils.ReadSecrets()
-				client := cloud.NewGCPKMS(sctlKey)
+				secrets, keyURI, loaderr := utils.ReadSecrets()
+				if loaderr != nil {
+					return loaderr
+				}
 
+				if keyURI == "" {
+					log.Debug("No KeyURI found in envelope. Using flag/env config.")
+					sctlKey = c.String("key")
+				} else {
+					log.Debug("Using key found in envelope: ", keyURI)
+					sctlKey = keyURI
+				}
+
+				client := cloud.NewGCPKMS(sctlKey)
 				for _, secret := range secrets {
 					// uncan the base64
 					decoded, err := base64.StdEncoding.DecodeString(secret.Cyphertext)
@@ -286,8 +300,10 @@ func BuildContextualMenu() []cli.Command {
 							Created:    time.Now(),
 							Encoding:   secret.Encoding,
 						}
-
-						utils.AddSecret(toAdd)
+						log.Debug("Saving new secret: ", toAdd.Name, " With key: ", newKey)
+						// ReKeying with a new secret is an explicit process. Invoke addSecret without
+						// key validation
+						utils.AddSecret(toAdd, newKey, false)
 						continue
 					}
 
@@ -305,7 +321,7 @@ func BuildContextualMenu() []cli.Command {
 						Encoding:   secret.Encoding,
 					}
 
-					utils.AddSecret(toAdd)
+					utils.AddSecret(toAdd, sctlKey, true)
 
 				}
 				return nil
@@ -345,17 +361,27 @@ func BuildContextualMenu() []cli.Command {
 
 				var secrets []utils.Secret
 				var arguments []string = c.Args()
+				var keyURI string
 
 				cmd := exec.Command(arguments[0], arguments[1:]...)
 				cmd.Env = os.Environ()
-				secrets = utils.ReadSecrets()
+				// TODO: Clean this up and handle the error case.
+				secrets, keyURI, _ = utils.ReadSecrets()
 				for _, secret := range secrets {
 					// uncan the base64
 					decoded, err := base64.StdEncoding.DecodeString(secret.Cyphertext)
 					if err != nil {
 						log.Fatalf("CLI - DECODING - %s", err)
 					}
-					client := cloud.NewGCPKMS(c.String("key"))
+					// Work with the envelope's provided key or switch to CLI flags/env
+					var client cloud.KMS
+					if keyURI == "" {
+						log.Warn("No KeyURI found in envelope. Required usage of flag/env config.")
+						client = cloud.NewGCPKMS(c.String("key"))
+					} else {
+						log.Debug("Found Key Identifier: ", keyURI)
+						client = cloud.NewGCPKMS(keyURI)
+					}
 					cypher, err := client.Decrypt(decoded)
 					if err != nil {
 						log.Fatalf("CLI - DECRYPT - %s", err)

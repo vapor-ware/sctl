@@ -84,3 +84,45 @@ func TestStateManagementWriter(t *testing.T) {
 	}
 
 }
+
+// Validate that we have not changed our default's expectations of working with .scuttle.json if
+// nothing is declared during factory init
+func TestNewVersionedLoaderDefaults(t *testing.T) {
+	vl := NewVersionedLoader("")
+	if vl.Filepath != ".scuttle.json" {
+		t.Fatalf("Error in default VersionedLoader Filepath. Wanted: .scuttle.json  Got: %s", vl.Filepath)
+	}
+}
+
+// TestVersionedLoader will attempt to load V1 and V2 formats of scuttle's envelopes.
+func TestVersionedLoader(t *testing.T) {
+	var testTable = []struct {
+		name  string
+		sm    VersionedLoader
+		value []string
+	}{
+		{"V1 Valid Single", NewVersionedLoader("../testdata/test_single.json"), []string{"CiQArcZm2NqPRMBD38xkbUt0LDB3UPKTDq9bRPmZKRTw2B3Zv/ESOAClhb3LwQupwOSMn9K/GrBKlcBRwZorSqHFrKkM0i2yXjMYRG/hDgta2x4otKuAnpoxVCSxRiNY"}},
+		{"V1 Valid Multiple", NewVersionedLoader("../testdata/test_integration.json"), []string{"CiQArcZm2It07gVRIxN091iI3S88Bemz+i7YYUb1LWJKd4kj9ccSMQClhb3LXy09yZJChRqnDTq+Ql5LNNoXmByltMN6WNJlAMD/9H2MLh5/hnhLm/lpPpM=", "CiQArcZm2OMpefBMf0KlBEprYw7UvAmlJxyuOAf8+avSe5l5QdwSPQClhb3LdTfq/FFjEDs7pXT/5P5Vq/81QIJaTQtNqOr7iVivDEdSXXC0OEvGJdQUK0QlHSVjULTMa4pP1ps="}},
+		// Test case for when sctl has removed all secrets, but a state file remains
+		{"V1 Valid Empty", NewVersionedLoader("../testdata/test_empty.json"), nil},
+		{"V2 Valid Single", NewVersionedLoader("../testdata/test_secret_v2.json"), []string{"0xD34DB33F"}},
+		{"V2 Valid Multiple", NewVersionedLoader("../testdata/test_secret_v2_multiple.json"), []string{"0xN00DL3S", "0xD34DB33F"}},
+		{"V2 Valid Empty", NewVersionedLoader("../testdata/test_secret_v2_empty.json"), nil},
+	}
+
+	for _, tt := range testTable {
+		t.Run(tt.name, func(t *testing.T) {
+			secrets, err := tt.sm.ReadState()
+
+			if err != nil {
+				t.Errorf("Case %s - Expected nil, got %s", tt.name, err)
+			}
+			for i, sec := range secrets.Secrets {
+				if sec.Cyphertext != tt.value[i] {
+					t.Errorf("Expected Cyphertext value %s but got %s", tt.value[i], sec.Cyphertext)
+				}
+			}
+
+		})
+	}
+}

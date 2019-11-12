@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -111,10 +112,10 @@ func (gc GoogleCredential) JSON() ([]byte, error) {
 
 	tok, err := gc.GetCredential("default")
 	if err != nil {
-		log.Println("Unable to locate credentials. Have you run `sctl credential add`?")
-		log.Printf("Another common issue is if running in a headless environment, where sctl expects"+
+		log.Warn("Unable to locate credentials. Have you run `sctl credential add`?")
+		log.Warn("Another common issue is if running in a headless environment, where sctl expects"+
 			" to be invoked with %s environment variable set.", CredentialVar)
-		log.Fatalf("Failed definetly with error %v", err)
+		return []byte{}, err
 	}
 	return json.Marshal(tok)
 }
