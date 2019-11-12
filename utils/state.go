@@ -46,6 +46,7 @@ func (ism IOStateManager) ReadState() (Secrets, error) {
 func (ism IOStateManager) WriteState(data Secrets) error {
 	jsonData, _ := json.MarshalIndent(&data, "", " ")
 	mode := int(0660) // file mode
+	log.Debug(string(jsonData))
 	return ioutil.WriteFile(ism.filename, jsonData, os.FileMode(mode))
 }
 

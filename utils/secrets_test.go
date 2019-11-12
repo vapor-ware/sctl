@@ -46,29 +46,38 @@ func TestSecretAddRotation(t *testing.T) {
 
 }
 
-func TestV2SameKey(t *testing.T) {
+func TestV2SameKeyV2Migration(t *testing.T) {
 	s := V2{}
-	expectTrue := s.SameKey("no")
-
-	// This is basically first init check. It should debug warn if run with --debug.
-	if expectTrue != true {
-		t.Errorf("Expected SameKey to eval to true on condition: len secrets: %v, len KeyIdentifier: %v", len(s.Secrets), len(s.KeyIdentifier))
-	}
 
 	// Setup a post-V2 semi-migration path. We have secrets, but no KeyIdentifier. Presume that
 	// the operator knows what they are doing and save the file
 	s.Secrets = Secrets{Secret{Name: "Test", Cyphertext: "Test"}}
-	expectTrue = s.SameKey("yes")
+	expectTrue := s.SameKey("yes")
 	if expectTrue != true {
 		t.Errorf("Expected SameKey to eval to true on condition: len secrets: %v, len KeyIdentifier: %v", len(s.Secrets), len(s.KeyIdentifier))
 	}
+}
+
+func TestV2SameKeyDifferentKeys(t *testing.T) {
+	s := V2{}
 
 	s.KeyIdentifier = "wont-match"
 	expectFalse := s.SameKey("no")
 
 	// Check for the usual case of having secrets and having a key identifier to gate writes
 	if expectFalse != false {
-		t.Errorf("Expected SameKey to eval to false on condition: len secrets: %v, len KeyIdentifier: %v", len(s.Secrets), len(s.KeyIdentifier))
+		t.Errorf("Expected SameKey to eval to false on condition: Declared KeyIdentifier: %v, Implied KeyIdentifier: %v", s.KeyIdentifier, "no")
+	}
+}
+
+func TestV2SameKeySameKeys(t *testing.T) {
+	s := V2{}
+	s.KeyIdentifier = "sames"
+
+	expectTrue := s.SameKey("sames")
+
+	if expectTrue != true {
+		t.Errorf("Expected SameKey to eval to true on condition: Declared KeyIdentifier: %v, Implied KeyIdentifier: %v", s.KeyIdentifier, "sames")
 	}
 }
 
@@ -81,7 +90,7 @@ func TestV2GetVersion(t *testing.T) {
 	}
 }
 
-func TestV2Load(t *testing.T) {
+func TestV2LoadNonExistant(t *testing.T) {
 	s := V2{}
 
 	s.Filepath = "../testdata/non-existant.json"
@@ -90,9 +99,12 @@ func TestV2Load(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected behavior. FileNotFound errors should silently be masked.")
 	}
+}
 
+func TestV2LoadSecretV2(t *testing.T) {
+	s := V2{}
 	s.Filepath = "../testdata/test_secret_v2.json"
-	err = s.Load()
+	err := s.Load()
 
 	if err != nil {
 		t.Errorf("Unexpected error processing envelope: %v", err)
@@ -100,5 +112,4 @@ func TestV2Load(t *testing.T) {
 	if len(s.Secrets) != 1 {
 		t.Errorf("Unexpected length of secrets. Wanted: 1  Got: %v", len(s.Secrets))
 	}
-
 }

@@ -65,10 +65,10 @@ type V2 struct {
 }
 
 // SameKey compares the KeyURI for the incoming encrypt/decrypt request.
-// Returns false if the key URI's do not match
+// Returns false if the key URI's do not match.
 func (s *V2) SameKey(key string) bool {
-	// short circuit the first run schenanigans and attempt to return this
-	// right away if we have any secrets in the struct
+	// short circuit if we can reasonably discern we are in a V2 migration scenario
+	// and return this right away if we have any secrets in the struct.
 	if len(s.Secrets) > 0 && len(s.KeyIdentifier) == 0 && len(key) > 0 {
 		log.Debug("No KeyURI found in envelope. Presuming current key is the correct key.")
 		return true
@@ -84,6 +84,8 @@ func (s *V2) SameKey(key string) bool {
 		return true
 	}
 
+	// otherwise, just gate the write based on the declared KeyIdentifier and the one being
+	// extracted from the envelope.
 	return s.KeyIdentifier == key
 }
 
@@ -92,11 +94,13 @@ func (s V2) GetVersion() string {
 	return "2"
 }
 
-// Load ...
+// Load will attempt to parse the indicated Filepath from the V2 object and populate the struct
+// for processing. This function is mostly for test cases and rapidly instantiating a v2 envelope.
 func (s *V2) Load() error {
 	file, err := ioutil.ReadFile(s.Filepath)
 	if err != nil {
 		if os.IsNotExist(err) {
+			log.Warn("No scuttle state file found. Initializing empty envelope")
 			// The file doesn't exist, dont raise an error and return empty data to account
 			// for first-run without a state serialized to disk.
 			s.Version = s.GetVersion()
@@ -109,15 +113,19 @@ func (s *V2) Load() error {
 	return json.Unmarshal([]byte(file), s)
 }
 
-// Save ...
+// Save will attempt to serialize the entirety of the V2 object to a statefile on disk indicated by the
+// Filepath paramter on the V2 object.
 func (s *V2) Save() error {
 	if s.Version == "" {
 		s.Version = "2"
 	}
 	if len(s.KeyIdentifier) == 0 {
-		log.Warn("No KeyURI provided to scuttles envelope. Saving without KeyIndicator embedded.")
+		log.Warn("No KeyURI provided to scuttles envelope. Saving without KeyIdentifier embedded.")
 	}
-	jsonData, _ := json.MarshalIndent(s, "", " ")
+	jsonData, err := json.MarshalIndent(s, "", " ")
+	if err != nil {
+		return err
+	}
 	mode := int(0660) // file mode
 	return ioutil.WriteFile(s.Filepath, jsonData, os.FileMode(mode))
 }

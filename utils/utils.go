@@ -59,11 +59,17 @@ func AddSecret(toAdd Secret, keyURI string, keyCheck bool) {
 	nvl := NewVersionedLoader(defaultFile)
 
 	contents, err := nvl.ReadState()
-	// First run case with FileNotFound exception. Mask this and save
-	if os.IsNotExist(err) {
-		envelope.Secrets.Add(toAdd)
-		envelope.Save()
-		return
+	if err != nil {
+		// First run case with FileNotFound exception. Mask this and save
+		if os.IsNotExist(err) {
+			envelope.Secrets.Add(toAdd)
+			envelope.Save()
+			return
+		}
+		// Handle any other parsing errors in a Fatal fashion
+		if err != nil {
+			log.WithFields(log.Fields{"method": "AddSecret"}).Fatalf("Failed parsing all known envelope formats. Failed with %v", err)
+		}
 	}
 
 	// Keycheck overrides if we bother with the key evaluation. This is problematic
@@ -76,13 +82,13 @@ func AddSecret(toAdd Secret, keyURI string, keyCheck bool) {
 		}
 	}
 
-	// Handle any other parsing errors in a Fatal fashion
-	if err != nil {
-		log.WithFields(log.Fields{"method": "AddSecret"}).Fatal("Failed parsing all known envelope formats.")
+	jsonData, jerr := json.MarshalIndent(envelope, "", " ")
+	// No idea how we would get here, but if this fails, we'll need to halt execution otherwise we're
+	// likely to corrupt state.
+	if jerr != nil {
+		log.Fatalf("Unable to marshall secret envelope for storage on disk. Errored with %v", jerr)
 	}
-
-	jsonData, _ := json.MarshalIndent(envelope, "", " ")
-	log.Debug(string(jsonData))
+	log.Debugf("Saving secret envelope with: %v", string(jsonData))
 	envelope.Secrets = contents.Secrets
 
 	envelope.Secrets.Add(toAdd)
@@ -96,7 +102,7 @@ func ReadSecrets() (Secrets, string, error) {
 
 	contents, err := nvl.ReadState()
 	if err != nil {
-		log.WithFields(log.Fields{"method": "ReadSecrets"}).Warn("Failed parsing all known envelope formats.")
+		log.WithFields(log.Fields{"method": "ReadSecrets"}).Fatalf("Failed parsing all known envelope formats. Failed with %v", err)
 	}
 	return contents.Secrets, contents.KeyIdentifier, nil
 }
@@ -109,6 +115,7 @@ func DeleteSecret(toRemove string) {
 	contents, err := nvl.ReadState()
 	if err != nil {
 		log.WithFields(log.Fields{"method": "DeleteSecret"}).Warn("Failed parsing all known envelope formats.")
+		log.Fatal("Refusing to remove secret from unprocessable envelope format.")
 	}
 	contents.Secrets.Remove(toRemove)
 	contents.Filepath = defaultFile

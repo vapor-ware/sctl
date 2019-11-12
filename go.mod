@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.46.3
-	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.7.0
 	github.com/google/go-github v17.0.0+incompatible // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
