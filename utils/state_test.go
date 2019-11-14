@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// TestDefaultCaseFactoryIniitalizer - Test the defaults of the initiializer
+// TestDefaultCaseFactoryIniitalizer - Test the defaults of the initializer
 func TestStateManagerFactoryDefault(t *testing.T) {
 	ism := NewIOStateManager("")
 
@@ -50,10 +50,13 @@ func TestStateManagementReader(t *testing.T) {
 func TestStateManagementWriter(t *testing.T) {
 	iosm := NewIOStateManager("../testdata/test_writer_temp.json")
 
-	iosm.WriteState([]Secret{
-		Secret{Name: "TEST", Cyphertext: "ABC123", Created: time.Now()},
-		Secret{Name: "TEST2", Cyphertext: "0xD34DB33F", Created: time.Now()},
+	err := iosm.WriteState([]Secret{
+		{Name: "TEST", Cyphertext: "ABC123", Created: time.Now()},
+		{Name: "TEST2", Cyphertext: "0xD34DB33F", Created: time.Now()},
 	})
+	if err != nil {
+		t.Errorf("Unexpected error during WriteState: %v", err)
+	}
 
 	// We've written state if we got this far. Recall from disk and inspect the structure
 	secrets, err := iosm.ReadState()
@@ -72,7 +75,11 @@ func TestStateManagementWriter(t *testing.T) {
 	// Cache the value for comparison
 	firstSecretCypher := secrets[0].Cyphertext
 	secrets[0].Cyphertext = "123ABC"
-	iosm.WriteState(secrets)
+	err = iosm.WriteState(secrets)
+	if err != nil {
+		t.Errorf("Unexpected error during WriteState: %v", err)
+	}
+
 	// Recall from serialized state
 	secrets, err = iosm.ReadState()
 	if err != nil {

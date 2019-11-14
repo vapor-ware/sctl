@@ -13,14 +13,17 @@ func TestKeyringMock(t *testing.T) {
 	gc := GoogleCredential{}
 	keyring.MockInit()
 
-	gc.SaveCredential("test", GoogleToken{ClientID: "test",
+	err := gc.SaveCredential("test", GoogleToken{ClientID: "test",
 		ClientSecret: "test",
 		RefreshToken: "test",
 		TheType:      "test_user"})
+	if err != nil {
+		t.Errorf("Unexpected error during SaveCredential: %v", err)
+	}
 
 	cred, err := gc.GetCredential("test")
 	if err != nil {
-
+		t.Fatal("Unexpected error during GetCredential")
 	}
 
 	if cred.ClientID != "test" {
@@ -36,12 +39,10 @@ func TestKeyringMock(t *testing.T) {
 		t.Errorf("Unexpected Type value. Wanted: test_user Got: %v", cred.TheType)
 	}
 
-	saverr := gc.DeleteCredential("test")
-
-	if saverr != nil {
-		t.Errorf("Unexpected error removing credential.")
+	err = gc.DeleteCredential("test")
+	if err != nil {
+		t.Errorf("Unexpected error removing credential: %v", err)
 	}
-
 }
 
 func TestKeyringMissingCredential(t *testing.T) {
@@ -64,7 +65,7 @@ func TestValidateContext(t *testing.T) {
 		if err == nil {
 			t.Errorf("Unexpected success. Wanted: GOOGLE_APPLICATION_CREDENTIALS warning Got: nil,")
 		}
-		os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+		_ = os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
 	}
 	noerr := gc.ValidateContext()
 	if noerr != nil {
@@ -72,7 +73,7 @@ func TestValidateContext(t *testing.T) {
 	}
 
 	if exists {
-		os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", gap)
+		_ = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", gap)
 	}
 }
 
@@ -84,7 +85,10 @@ func TestFormatCredential(t *testing.T) {
 		RefreshToken: "test",
 		TokenType:    "test_token"}
 
-	cred := gc.formatCredential(&token, []byte(clientJSON))
+	cred, err := gc.formatCredential(&token, []byte(clientJSON))
+	if err != nil {
+		t.Fatalf("Unexpected error formatting credential: %v", err)
+	}
 
 	if cred.ClientID != "someclient.apps.googleusercontent.com" {
 		t.Errorf("Unexpected ClientID value. Wanted: someclient.apps.googleusercontent.com  Got: %v", cred.ClientID)
@@ -101,7 +105,6 @@ func TestFormatCredential(t *testing.T) {
 	if cred.TheType != "authorized_user" {
 		t.Errorf("Unexpected Type value. Wanted: authorized_user  Got: %v", cred.TheType)
 	}
-
 }
 
 func TestJSONFromKeyring(t *testing.T) {
@@ -112,14 +115,18 @@ func TestJSONFromKeyring(t *testing.T) {
 		t.Skip("Detected GOOGLE_APPLICATION_CREDENTIALS override")
 	}
 	keyring.MockInit()
-	keyring.Set("scuttle", "default-gcp", "{\"client_id\":\"test.apps.googleusercontent.com\",\"client_secret\":\"ITSASECRET\",\"refresh_token\":\"Refreshing\",\"type\":\"authorized_user\"}")
+	err := keyring.Set("scuttle", "default-gcp", "{\"client_id\":\"test.apps.googleusercontent.com\",\"client_secret\":\"ITSASECRET\",\"refresh_token\":\"Refreshing\",\"type\":\"authorized_user\"}")
+	if err != nil {
+		t.Errorf("Unexpected error for keyring.Set: %v", err)
+	}
 
-	keyJSON, _ := gc.JSON()
-
+	keyJSON, err := gc.JSON()
+	if err != nil {
+		t.Errorf("Unexpected error for gc.JSON: %v", err)
+	}
 	if len(keyJSON) == 0 {
 		t.Errorf("Unexpected zero-byte return. Wanted: []byte respresentation of GoogleToken. Got: []byte{}")
 	}
-
 }
 
 func TestJSONFromKeyringBadCred(t *testing.T) {
@@ -134,15 +141,21 @@ func TestJSONFromKeyringBadCred(t *testing.T) {
 	_, err := gc.JSON()
 
 	if err == nil {
-		t.Error("Unexected success. Wanted: FileNotFound error, got: nil")
+		t.Error("Unexpected success. Wanted: FileNotFound error, got: nil")
 	}
-
 }
 
 func TestJSONFromEnv(t *testing.T) {
-	os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", filepath.FromSlash("../testdata/test_google_token.json"))
+	err := os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", filepath.FromSlash("../testdata/test_google_token.json"))
+	if err != nil {
+		t.Fatalf("failed to set test environment: %v", err)
+	}
+
 	gc := GoogleCredential{}
-	keyJSON, _ := gc.JSON()
+	keyJSON, err := gc.JSON()
+	if err != nil {
+		t.Errorf("Unexpected error from gc.JSON: %v", err)
+	}
 
 	if len(keyJSON) == 0 {
 		t.Errorf("Unexpected zero-byte return.  Wanted: []byte respresentation of GoogleToken. Got: []byte{}")
@@ -150,9 +163,13 @@ func TestJSONFromEnv(t *testing.T) {
 }
 
 func TestJSONErrorFromEnv(t *testing.T) {
-	os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", filepath.FromSlash("../testdata/nonexistant.json"))
+	err := os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", filepath.FromSlash("../testdata/nonexistant.json"))
+	if err != nil {
+		t.Fatalf("failed to set test environment: %v", err)
+	}
+
 	gc := GoogleCredential{}
-	_, err := gc.JSON()
+	_, err = gc.JSON()
 
 	if err == nil {
 		t.Error("Unexected success. Wanted: FileNotFound error, got: nil")
