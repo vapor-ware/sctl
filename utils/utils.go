@@ -49,7 +49,7 @@ func eofKeySequenceText() string {
 		return "Ctrl+Z and Enter"
 	}
 
-	return "Ctrl+D"
+	return "Enter and Ctrl+D"
 }
 
 // AddSecret Recalls state if present, and appends a secret to the state file
