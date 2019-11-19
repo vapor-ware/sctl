@@ -38,8 +38,8 @@ func TestEOFKeySequenceText(t *testing.T) {
 		}
 	}
 
-	if current != "Ctrl+D" {
-		t.Errorf("Unexpected EOF key sequence text. Wanted: Ctrl+D Got: %v", current)
+	if current != "Enter and Ctrl+D" {
+		t.Errorf("Unexpected EOF key sequence text. Wanted: Enter and Ctrl+D Got: %v", current)
 	}
 }
 
