@@ -17,15 +17,24 @@ func testContextSetup(temp string, t *testing.T) (string, string) {
 	if tempPathErr != nil {
 		t.Skipf("Failed to create temporary path with error: %v", tempPathErr)
 	}
-	os.Chdir(tempPath)
+	err := os.Chdir(tempPath)
+	if err != nil {
+		t.Skipf("failed to change to directory %s: %v", tempPath, err)
+	}
 
 	return tempPath, currPath
 }
 
 // Test Case Cleanup
-func testContextSwitch(tempPath string, currPath string) {
-	os.RemoveAll(tempPath)
-	os.Chdir(currPath)
+func testContextSwitch(t *testing.T, tempPath string, currPath string) {
+	err := os.RemoveAll(tempPath)
+	if err != nil {
+		t.Errorf("failed to clean up temp path %s: %v", tempPath, err)
+	}
+	err = os.Chdir(currPath)
+	if err != nil {
+		t.Errorf("failed to change path to %s: %v", currPath, err)
+	}
 }
 
 // Validate we haven't broken the EOFKey Sequence text
@@ -46,7 +55,7 @@ func TestEOFKeySequenceText(t *testing.T) {
 // Test adding a single secret without a KeyURI
 func TestAddSecretHelperAddSingleNoKeyURI(t *testing.T) {
 	tempPath, currPath := testContextSetup("TestAddSecretHelperAddSingle", t)
-	defer testContextSwitch(tempPath, currPath)
+	defer testContextSwitch(t, tempPath, currPath)
 
 	hush := Secret{
 		Name:       "TEST",
@@ -55,10 +64,14 @@ func TestAddSecretHelperAddSingleNoKeyURI(t *testing.T) {
 		Encoding:   "plain",
 	}
 
-	AddSecret(hush, "", true)
-	state, keyURI, lerr := ReadSecrets()
-	if lerr != nil {
-		t.Error(lerr)
+	err := AddSecret(hush, "", true)
+	if err != nil {
+		t.Errorf("Unexpected error during AddSecret: %v", err)
+	}
+
+	state, keyURI, err := ReadSecrets()
+	if err != nil {
+		t.Error(err)
 	}
 	if keyURI != "" {
 		t.Errorf("Unexpected KeyIdentifier. Wanted: '', Got: %v", keyURI)
@@ -76,13 +89,12 @@ func TestAddSecretHelperAddSingleNoKeyURI(t *testing.T) {
 	if state[0].Encoding != "plain" {
 		t.Errorf("Unexpected Value for Encoding, Wanted: plain, Got: %v", state[0].Encoding)
 	}
-
 }
 
 // Test adding a single secret with a KeyURI
 func TestAddSecretHelperAddSingleWithKeyURI(t *testing.T) {
 	tempPath, currPath := testContextSetup("TestAddSecretHelperAddSingle", t)
-	defer testContextSwitch(tempPath, currPath)
+	defer testContextSwitch(t, tempPath, currPath)
 
 	hush := Secret{
 		Name:       "TEST",
@@ -91,7 +103,11 @@ func TestAddSecretHelperAddSingleWithKeyURI(t *testing.T) {
 		Encoding:   "plain",
 	}
 
-	AddSecret(hush, "/path/to/key", true)
+	err := AddSecret(hush, "/path/to/key", true)
+	if err != nil {
+		t.Errorf("Unexpected error during AddSecret: %v", err)
+	}
+
 	state, keyURI, err := ReadSecrets()
 	if err != nil {
 		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
@@ -112,14 +128,13 @@ func TestAddSecretHelperAddSingleWithKeyURI(t *testing.T) {
 	if keyURI != "/path/to/key" {
 		t.Errorf("Unexpected value for keyURI, Wanted: /google/keys/somekey, Got: %v", keyURI)
 	}
-
 }
 
 // Test adding a secret to the v2 envelope, and rotating it
 func TestAddSecretHelperRotation(t *testing.T) {
 	tempPath, currPath := testContextSetup("TestAddSecretHelperRotation", t)
 
-	defer testContextSwitch(tempPath, currPath)
+	defer testContextSwitch(t, tempPath, currPath)
 
 	hush := Secret{
 		Name:       "TEST",
@@ -128,39 +143,40 @@ func TestAddSecretHelperRotation(t *testing.T) {
 		Encoding:   "plain",
 	}
 
-	AddSecret(hush, "/google/keys/somekey", true)
-	state, keyURI, err := ReadSecrets()
+	err := AddSecret(hush, "/google/keys/somekey", true)
+	if err != nil {
+		t.Errorf("Unexpected error during AddSecret: %v", err)
+	}
 
+	state, keyURI, err := ReadSecrets()
 	if len(state) != 1 {
 		t.Errorf("Unexpected Slice Length, Wanted: 1, Got: %v", len(state))
 	}
-
 	if keyURI != "/google/keys/somekey" {
 		t.Errorf("Unexpected value for keyURI, Wanted: /google/keys/somekey, Got: %v", keyURI)
 	}
-
 	if err != nil {
 		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
 	}
 
 	// Now actually rotate the entry
 	hush.Cyphertext = "UpdatedCyphertext"
-	AddSecret(hush, "/google/keys/somekey", true)
+	err = AddSecret(hush, "/google/keys/somekey", true)
+	if err != nil {
+		t.Errorf("Unexpected error during AddSecret: %v", err)
+	}
 
 	// re-evaluate the serialized data recalled from disk and inspect for variant behavior
 	state, keyURI, err = ReadSecrets()
 	if len(state) != 1 {
 		t.Errorf("Unexpected Slice Length, Wanted: 1, Got: %v", len(state))
 	}
-
 	if keyURI != "/google/keys/somekey" {
 		t.Errorf("Unexpected value for keyURI, Wanted: /google/keys/somekey, Got: %v", keyURI)
 	}
-
 	if state[0].Cyphertext != "UpdatedCyphertext" {
 		t.Errorf("Unexpected value for Cyphertext, Wanted: UpdatedCyphertext, Got: %v", state[0].Cyphertext)
 	}
-
 	if err != nil {
 		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
 	}
@@ -171,7 +187,7 @@ func TestAddSecretHelperRotation(t *testing.T) {
 func TestAddSecretHelperPartialV2UpdateSupport(t *testing.T) {
 	tempPath, currPath := testContextSetup("TestAddSecretHelperPartialV2UpdateSupport", t)
 
-	defer testContextSwitch(tempPath, currPath)
+	defer testContextSwitch(t, tempPath, currPath)
 
 	hush := Secret{
 		Name:       "TEST",
@@ -180,7 +196,11 @@ func TestAddSecretHelperPartialV2UpdateSupport(t *testing.T) {
 		Encoding:   "plain",
 	}
 
-	AddSecret(hush, "", true)
+	err := AddSecret(hush, "", true)
+	if err != nil {
+		t.Errorf("Unexpected error during AddSecret: %v", err)
+	}
+
 	state, keyURI, err := ReadSecrets()
 	if err != nil {
 		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
@@ -195,7 +215,10 @@ func TestAddSecretHelperPartialV2UpdateSupport(t *testing.T) {
 	// Now actually rotate the entry
 	hush.Cyphertext = "UpdatedCyphertext"
 	// Note that we re-key the envelope here, silently.
-	AddSecret(hush, "/google/keys/somekey", true)
+	err = AddSecret(hush, "/google/keys/somekey", true)
+	if err != nil {
+		t.Errorf("Unexpected error during AddSecret: %v", err)
+	}
 
 	// re-evaluate the serialized data recalled from disk and inspect for variant behavior
 	state, keyURI, err = ReadSecrets()
@@ -212,19 +235,22 @@ func TestAddSecretHelperPartialV2UpdateSupport(t *testing.T) {
 
 func TestAddSecretHelperV1ToV2(t *testing.T) {
 	tempPath, currPath := testContextSetup("TestAddSecretHelperV1ToV2", t)
-	defer testContextSwitch(tempPath, currPath)
+	defer testContextSwitch(t, tempPath, currPath)
 
 	s := Secrets{}
 	s.Add(Secret{Name: "TESTV1UPGRADE", Cyphertext: "Banana", Created: time.Now(), Encoding: "plain"})
 
 	v1StatePath := tempPath + "/.scuttle.json"
 	v1Writer := NewIOStateManager(v1StatePath)
-	v1Writer.WriteState(s)
+	err := v1Writer.WriteState(s)
+	if err != nil {
+		t.Errorf("Unexpected error during WriteState: %v", err)
+	}
 
-	upgrade, keyURI, lerr := ReadSecrets()
+	upgrade, keyURI, err := ReadSecrets()
 	// Unexpected error? just dump out the error.
-	if lerr != nil {
-		t.Error(lerr)
+	if err != nil {
+		t.Error(err)
 	}
 	// Did we translate?
 	if len(upgrade) != 1 {
@@ -232,7 +258,10 @@ func TestAddSecretHelperV1ToV2(t *testing.T) {
 	}
 
 	// Add a secret
-	AddSecret(Secret{Name: "TestV2Upgrade", Cyphertext: "Mango", Created: time.Now(), Encoding: "plain"}, "path/to/key", true)
+	err = AddSecret(Secret{Name: "TestV2Upgrade", Cyphertext: "Mango", Created: time.Now(), Encoding: "plain"}, "path/to/key", true)
+	if err != nil {
+		t.Errorf("Unexpected error during AddSecret: %v", err)
+	}
 	// re-evaluate the serialized data recalled from disk and inspect for variant behavior
 	state, keyURI, err := ReadSecrets()
 	if err != nil {

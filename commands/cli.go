@@ -3,7 +3,6 @@ package commands
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-
 	"github.com/urfave/cli"
 	"github.com/vapor-ware/sctl/cloud"
 	"github.com/vapor-ware/sctl/credentials"
@@ -48,23 +47,29 @@ func BuildContextualMenu() []cli.Command {
 				// Check for KMS key uri, and presence of the secrets name
 				err := validateContext(c, "add")
 				if err != nil {
-					log.Fatal(err)
+					return err
 				}
 
 				var plaintext []byte
 
 				// Scan for data being piped via STDIN and favor this over alternate inputs
-				plaintext = stdinScan()
+				plaintext, err = stdinScan()
+				if err != nil {
+					return err
+				}
 				if plaintext == nil {
 					// NO data detected on stdin, attempt to scan for args after keyname
 					if len(c.Args()) > 1 {
 						plaintext = []byte(c.Args()[1])
 					} else {
 						// Everything else has failed finally resort to prompting for manual input
-						plaintext = utils.UserInput("Enter the data you want to encrypt.")
+						plaintext, err = utils.UserInput("Enter the data you want to encrypt.")
+						if err != nil {
+							return err
+						}
 						// if we have nothing at this phase, log an error and abort
 						if len(plaintext) == 0 {
-							log.Fatal("Empty input detected. Aborting")
+							return errors.New("empty input detected - aborting")
 						}
 					}
 				}
@@ -88,7 +93,7 @@ func BuildContextualMenu() []cli.Command {
 
 				cypher, err := client.Encrypt(plaintext)
 				if err != nil {
-					log.Fatal(err)
+					return err
 				}
 				// re-encode the binary data we got back.
 				encoded := base64.StdEncoding.EncodeToString(cypher)
@@ -99,9 +104,7 @@ func BuildContextualMenu() []cli.Command {
 					Encoding:   secretEncoding,
 				}
 
-				utils.AddSecret(toAdd, c.String("key"), true)
-
-				return nil
+				return utils.AddSecret(toAdd, c.String("key"), true)
 			},
 		},
 		{
@@ -120,20 +123,31 @@ func BuildContextualMenu() []cli.Command {
 					Usage: "Add a default credential",
 					Action: func(c *cli.Context) error {
 						var cred credentials.GoogleCredential
-						conf := utils.ReadConfiguration()
-						conf.Init()
+						conf, err := utils.ReadConfiguration()
+						if err != nil {
+							// Only return the error if it is a config load error, as the
+							// config may fail to load on first run.
+							if !utils.IsConfigLoadErr(err) {
+								return err
+							}
+						}
+						if err := conf.Init(); err != nil {
+							return err
+						}
 
 						if len(conf.GoogleClient.Data) == 0 {
-							clientData := utils.UserInput("Enter your organizations Sctl google client JSON")
+							clientData, err := utils.UserInput("Enter your organizations Sctl google client JSON")
+							if err != nil {
+								return err
+							}
 							conf.GoogleClient = utils.Client{Data: string(clientData)}
 						}
 
-						err := cred.Login(conf, "default")
-						conf.Save()
+						err = cred.Login(conf, "default")
 						if err != nil {
-							log.Fatal(err)
+							return err
 						}
-						return nil
+						return conf.Save()
 					},
 				},
 				{
@@ -158,22 +172,20 @@ func BuildContextualMenu() []cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-
-				verr := validateContext(c, "decrypt")
-				if verr != nil {
-					return verr
+				err := validateContext(c, "decrypt")
+				if err != nil {
+					return err
 				}
 				if len(c.Args()) >= 1 {
 					decoded, err := base64.StdEncoding.DecodeString(c.Args().First())
 					if err != nil {
-						log.Fatal(err)
+						return err
 					}
 					client := cloud.NewGCPKMS(c.String("key"))
 					cypher, err := client.Decrypt(decoded)
 					if err != nil {
-						log.Fatal(err)
+						return err
 					}
-
 					fmt.Println(string(cypher))
 				}
 				return nil
@@ -191,7 +203,6 @@ func BuildContextualMenu() []cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-
 				err := validateContext(c, "encrypt")
 				if err != nil {
 					return err
@@ -199,24 +210,29 @@ func BuildContextualMenu() []cli.Command {
 				var plaintext []byte
 
 				// attempt stdin scan, encrypt should be pipeable for things like cat'ing a file.
-				plaintext = stdinScan()
+				plaintext, err = stdinScan()
+				if err != nil {
+					return err
+				}
 				if plaintext == nil {
-					plaintext = utils.UserInput("Enter the data you want to encrypt.")
+					plaintext, err = utils.UserInput("Enter the data you want to encrypt.")
+					if err != nil {
+						return err
+					}
 				}
 				if len(plaintext) == 0 {
-					log.Fatal("Empty input detected. Aborting")
+					return errors.New("empty input detected - aborting")
 				}
 
 				client := cloud.NewGCPKMS(c.String("key"))
 				cypher, err := client.Encrypt(plaintext)
 				if err != nil {
-					log.Fatal(err)
+					return err
 				}
 				encoded := base64.StdEncoding.EncodeToString(cypher)
 
 				fmt.Println("```")
-				cmd := fmt.Sprintf("sctl decrypt --key=%s %s", c.String("key"), encoded)
-				fmt.Println(cmd)
+				fmt.Printf("sctl decrypt --key=%s %s\n", c.String("key"), encoded)
 				fmt.Println("```")
 				return nil
 			},
@@ -226,8 +242,10 @@ func BuildContextualMenu() []cli.Command {
 			Usage:    "List known secrets",
 			Category: statecategory,
 			Action: func(c *cli.Context) error {
-				// TODO: Handle this error case with no secrets
-				secrets, _, _ := utils.ReadSecrets()
+				secrets, _, err := utils.ReadSecrets()
+				if err != nil {
+					return err
+				}
 				var knownKeys []string
 				for _, secret := range secrets {
 					knownKeys = append(knownKeys, secret.Name)
@@ -255,13 +273,12 @@ func BuildContextualMenu() []cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-
 				var sctlKey string
 				newKey := c.String("newkey")
 
-				secrets, keyURI, loaderr := utils.ReadSecrets()
-				if loaderr != nil {
-					return loaderr
+				secrets, keyURI, err := utils.ReadSecrets()
+				if err != nil {
+					return err
 				}
 
 				if keyURI == "" {
@@ -277,11 +294,11 @@ func BuildContextualMenu() []cli.Command {
 					// uncan the base64
 					decoded, err := base64.StdEncoding.DecodeString(secret.Cyphertext)
 					if err != nil {
-						log.Fatalf("CLI - DECODING - %s", err)
+						return errors.Wrap(err, "failed secret decode")
 					}
 					decrypted, err := client.Decrypt(decoded)
 					if err != nil {
-						log.Fatalf("CLI - DECRYPT - %s", err)
+						return errors.Wrap(err, "failed secret decrypt")
 					}
 
 					if newKey != "" {
@@ -290,7 +307,7 @@ func BuildContextualMenu() []cli.Command {
 
 						newCypher, err := newClient.Encrypt(decrypted)
 						if err != nil {
-							log.Fatal(err)
+							return err
 						}
 						// re-encode the binary data we got back.
 						encoded := base64.StdEncoding.EncodeToString(newCypher)
@@ -303,13 +320,16 @@ func BuildContextualMenu() []cli.Command {
 						log.Debug("Saving new secret: ", toAdd.Name, " With key: ", newKey)
 						// ReKeying with a new secret is an explicit process. Invoke addSecret without
 						// key validation
-						utils.AddSecret(toAdd, newKey, false)
+						err = utils.AddSecret(toAdd, newKey, false)
+						if err != nil {
+							return err
+						}
 						continue
 					}
 
 					newCypher, err := client.Encrypt(decrypted)
 					if err != nil {
-						log.Fatal(err)
+						return err
 					}
 					// re-encode the binary data we got back.
 					encoded := base64.StdEncoding.EncodeToString(newCypher)
@@ -321,8 +341,10 @@ func BuildContextualMenu() []cli.Command {
 						Encoding:   secret.Encoding,
 					}
 
-					utils.AddSecret(toAdd, sctlKey, true)
-
+					err = utils.AddSecret(toAdd, sctlKey, true)
+					if err != nil {
+						return err
+					}
 				}
 				return nil
 			},
@@ -333,8 +355,7 @@ func BuildContextualMenu() []cli.Command {
 			Category: statecategory,
 			Action: func(c *cli.Context) error {
 				secretName := strings.ToUpper(c.Args().First())
-				utils.DeleteSecret(secretName)
-				return nil
+				return utils.DeleteSecret(secretName)
 			},
 		},
 		{
@@ -354,9 +375,9 @@ func BuildContextualMenu() []cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				verr := validateContext(c, "run")
-				if verr != nil {
-					return verr
+				err := validateContext(c, "run")
+				if err != nil {
+					return err
 				}
 
 				var secrets []utils.Secret
@@ -366,12 +387,15 @@ func BuildContextualMenu() []cli.Command {
 				cmd := exec.Command(arguments[0], arguments[1:]...)
 				cmd.Env = os.Environ()
 				// TODO: Clean this up and handle the error case.
-				secrets, keyURI, _ = utils.ReadSecrets()
+				secrets, keyURI, err = utils.ReadSecrets()
+				if err != nil {
+					return err
+				}
 				for _, secret := range secrets {
 					// uncan the base64
 					decoded, err := base64.StdEncoding.DecodeString(secret.Cyphertext)
 					if err != nil {
-						log.Fatalf("CLI - DECODING - %s", err)
+						return errors.Wrap(err, "failed secret decode")
 					}
 					// Work with the envelope's provided key or switch to CLI flags/env
 					var client cloud.KMS
@@ -384,13 +408,13 @@ func BuildContextualMenu() []cli.Command {
 					}
 					cypher, err := client.Decrypt(decoded)
 					if err != nil {
-						log.Fatalf("CLI - DECRYPT - %s", err)
+						return errors.Wrap(err, "failed secret decrypt")
 					}
 					// switch output if encoding == base64
 					if secret.Encoding == "base64" {
 						cypher, err = base64.StdEncoding.DecodeString(string(cypher))
 						if err != nil {
-							log.Fatalf("CLI - ENCODING - %s", err)
+							return errors.Wrap(err, "failed secret decode")
 						}
 					} else {
 						log.Printf("skipping decode of %v due to encoding != base64", secret.Name)
@@ -405,12 +429,7 @@ func BuildContextualMenu() []cli.Command {
 				if c.Bool("interactive") {
 					cmd.Stdin = os.Stdin
 				}
-				err := cmd.Run()
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				return nil
+				return cmd.Run()
 			},
 		},
 	}
@@ -423,15 +442,15 @@ func validateContext(c *cli.Context, context string) error {
 	case "add":
 		// disallow empty key data
 		if len(c.String("key")) == 0 {
-			return errors.New("Missing configuration for key")
+			return errors.New("missing configuration for key")
 		}
 		// disallow empty secret name
 		if c.Args().First() == "" {
-			return errors.New("Usage: sctl add SECRET_ALIAS")
+			return errors.New("usage: sctl add SECRET_ALIAS")
 		}
 	default:
 		if len(c.String("key")) == 0 {
-			return errors.New("Missing configuration for key")
+			return errors.New("missing configuration for key")
 		}
 	}
 
@@ -440,16 +459,19 @@ func validateContext(c *cli.Context, context string) error {
 }
 
 // stdinScan - read if we have data on STDIN and return to execution
-func stdinScan() []byte {
+func stdinScan() ([]byte, error) {
 	// Determine if we have data available on STDIN
-	stat, _ := os.Stdin.Stat()
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return nil, err
+	}
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		// we presume data is being piped to stdin
 		rawInput, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
-		return bytes.TrimRight(rawInput, "\r\n")
+		return bytes.TrimRight(rawInput, "\r\n"), nil
 	}
-	return nil
+	return nil, nil
 }

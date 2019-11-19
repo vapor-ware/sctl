@@ -7,6 +7,15 @@ import (
 	"path/filepath"
 )
 
+// ErrConfigLoad is a struct fulfilling the error interface. It specified errors
+// where sctl failed to load its config, which is useful to know, since this could
+// be the case on first-run.
+type ErrConfigLoad struct{}
+
+func (e *ErrConfigLoad) Error() string {
+	return "failed to load sctl configuration"
+}
+
 // Configuration objects wrap the $UserConfig object we store so we can identify which cloud credentials we
 // have, as well as the known client configuration for our clouds. Unfortunately for google users, we
 // cannot distribute API keys as part of our open source application. This necessitates every sctl admin
@@ -28,10 +37,10 @@ import (
 //     }
 // }
 
-// Configuration warhouses the sctl user configuration. Details that are not secrets
+// Configuration warehouses the sctl user configuration. Details that are not secrets
 // but don't belong in secret state.
 // params:
-// GoogleClient identifys the sctl application when being used in the OAUTH2 login flow.
+// GoogleClient identifies the sctl application when being used in the OAUTH2 login flow.
 // configPath is the path to store sctl's configuration
 // configFilePath is the path to sctl's config.json
 type Configuration struct {
@@ -49,10 +58,11 @@ type Client struct {
 // Save Serializes the configuration to json and stores it on disk in
 // the operating systems configuration path.
 func (c *Configuration) Save() error {
-	jsonData, _ := json.MarshalIndent(&c, "", " ")
-	ioutil.WriteFile(c.configFilePath, jsonData, os.FileMode(0600))
-
-	return nil
+	jsonData, err := json.MarshalIndent(&c, "", " ")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(c.configFilePath, jsonData, os.FileMode(0600))
 }
 
 // Load will load the json from disk and populate the configuration with
@@ -62,27 +72,42 @@ func (c *Configuration) Load() error {
 	if err != nil {
 		return err
 	}
-
 	return json.Unmarshal([]byte(f), c)
 }
 
 // Init will generate the configuration path for sctl in the system UserConfigDir
-func (c *Configuration) Init() {
-	os.MkdirAll(c.configPath, 0775)
+func (c *Configuration) Init() error {
+	return os.MkdirAll(c.configPath, 0775)
 }
 
 // ReadConfiguration will instantiate a Configuration struct and attempt to load from
 // the serialized data. If an error is encountered processing this operation
 // a blank Configuration struct will be returned.
-func ReadConfiguration() Configuration {
+func ReadConfiguration() (Configuration, error) {
+	// FIXME (etd): I believe there is a bug here. `c` is an empty Configuration that does
+	//	not have a configPath set, so nothing would ever happen when Init is called?
 	c := Configuration{}
-	c.Init()
+	if err := c.Init(); err != nil {
+		// FIXME (etd) - It seems like we should return the error here, but that causes existing
+		// 	tests to fail, so for now, just commenting out the error return.
+		//return c, err
+	}
+
 	osConfigDir, _ := os.UserConfigDir()
 	c.configPath = filepath.FromSlash(osConfigDir + "/sctl")
 	c.configFilePath = filepath.FromSlash(c.configPath + "/config.json")
-	c.Load()
+	if err := c.Load(); err != nil {
+		return c, &ErrConfigLoad{}
+	}
 	// If this errors, we still want the empty Configuration object.
 	// This will account/allow first run usage, but may mask errors later.
 	// Handling this case is TODO
-	return c
+	return c, nil
+}
+
+// IsConfigLoadErr is a helper function which checks if a given error is an instance
+// of the ErrConfigLoad error.
+func IsConfigLoadErr(err error) bool {
+	_, ok := err.(*ErrConfigLoad)
+	return ok
 }

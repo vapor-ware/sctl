@@ -49,7 +49,7 @@ func (s *Secrets) Add(toAdd Secret) {
 			*s = append((*s)[:index], (*s)[index+1:]...)
 		}
 	}
-	*s = append((*s), toAdd)
+	*s = append(*s, toAdd)
 }
 
 // V2 Secrets is a representation of the envelope enhanced to track their

@@ -15,7 +15,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "1.2.0"
+	app.Version = "1.2.1"
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:   "debug",

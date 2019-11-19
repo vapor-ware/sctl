@@ -44,15 +44,16 @@ func (ism IOStateManager) ReadState() (Secrets, error) {
 
 // WriteState will Serialize secret data state to JSON on disk.
 func (ism IOStateManager) WriteState(data Secrets) error {
-	jsonData, _ := json.MarshalIndent(&data, "", " ")
-	mode := int(0660) // file mode
+	jsonData, err := json.MarshalIndent(&data, "", " ")
+	if err != nil {
+		return err
+	}
 	log.Debug(string(jsonData))
-	return ioutil.WriteFile(ism.filename, jsonData, os.FileMode(mode))
+	return ioutil.WriteFile(ism.filename, jsonData, os.FileMode(0660))
 }
 
 // NewIOStateManager is a factory method to initialize an IOStateManager.
 func NewIOStateManager(filename string) IOStateManager {
-
 	if len(filename) > 0 {
 		return IOStateManager{filename: filename}
 	}
@@ -64,7 +65,7 @@ type VersionedLoader struct {
 	Filepath string
 }
 
-// ReadState Attempts to unserialize a V2 secret envelope. If it encounters an error unmarshalling
+// ReadState Attempts to deserialize a V2 secret envelope. If it encounters an error unmarshalling
 // the data structure, it will fall back and attempt to initialize a new V2 secret envelope, and populate
 // with what we presume to be a V1 format. If that fails, we fail fatally.
 func (vl VersionedLoader) ReadState() (V2, error) {
@@ -91,11 +92,10 @@ func (vl VersionedLoader) ReadState() (V2, error) {
 // NewVersionedLoader is a factory method to instantiate new VersionedLoaders consistently.
 // if no filepath is provided, it will default to ".scuttle.json"
 func NewVersionedLoader(filepath string) VersionedLoader {
-	var loader VersionedLoader
 	if filepath == "" {
-		loader.Filepath = defaultFile
-		return loader
+		filepath = defaultFile
 	}
-	loader.Filepath = filepath
-	return loader
+	return VersionedLoader{
+		Filepath: filepath,
+	}
 }

@@ -87,7 +87,6 @@ func (gc GoogleCredential) GetCredential(credentialName string) (GoogleToken, er
 	if err != nil {
 		return GoogleToken{}, err
 	}
-
 	return token, nil
 }
 
@@ -105,7 +104,7 @@ func (gc GoogleCredential) JSON() ([]byte, error) {
 		log.Printf("Using env exported %s", CredentialVar)
 		f, err := ioutil.ReadFile(external)
 		if err != nil {
-			return []byte{}, errors.Wrap(err, fmt.Sprintf("Unable to read %s", CredentialVar))
+			return []byte{}, errors.Wrapf(err, "Unable to read %s", CredentialVar)
 		}
 		return f, nil
 	}
@@ -132,20 +131,19 @@ func (gc GoogleCredential) ValidateContext() error {
 	return nil
 }
 
-func (gc GoogleCredential) formatCredential(token *oauth2.Token, rawClientData []byte) GoogleToken {
+func (gc GoogleCredential) formatCredential(token *oauth2.Token, rawClientData []byte) (GoogleToken, error) {
 	var clientJSON GoogleClientJSON
 	err := json.Unmarshal(rawClientData, &clientJSON)
 	if err != nil {
-		log.Fatalf("Error Unmarshalling client credentials: %v", err)
+		return GoogleToken{}, err
 	}
-	googleToken := GoogleToken{
+
+	return GoogleToken{
 		ClientID:     clientJSON.ClientConfig.ClientID,
 		ClientSecret: clientJSON.ClientConfig.ClientSecret,
 		RefreshToken: token.RefreshToken,
 		TheType:      "authorized_user",
-	}
-
-	return googleToken
+	}, nil
 }
 
 // Login initiates a CLI workflow to authenticate the user with offline credentials limited to
@@ -159,30 +157,34 @@ func (gc GoogleCredential) Login(c utils.Configuration, credentialName string) e
 	clientConfig := []byte(c.GoogleClient.Data)
 	// Initialize the API client
 	config, err := google.ConfigFromJSON(clientConfig, "https://www.googleapis.com/auth/cloudkms")
-
 	if err != nil {
 		return err
 	}
 	// Initiate login sequence
-	tok := gc.getToken(config)
-	userToken := gc.formatCredential(tok, clientConfig)
-	gc.SaveCredential(credentialName, userToken)
-	return nil
+	tok, err := gc.getToken(config)
+	if err != nil {
+		return err
+	}
+	userToken, err := gc.formatCredential(tok, clientConfig)
+	if err != nil {
+		return err
+	}
+	return gc.SaveCredential(credentialName, userToken)
 }
 
-func (gc GoogleCredential) getToken(config *oauth2.Config) *oauth2.Token {
+func (gc GoogleCredential) getToken(config *oauth2.Config) (*oauth2.Token, error) {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	fmt.Printf("Go to the following link in your browser then type the "+
 		"authorization code: \n%v\n", authURL)
 
 	var authCode string
 	if _, err := fmt.Scan(&authCode); err != nil {
-		log.Fatalf("Unable to read authorization code: %v", err)
+		return nil, errors.Wrap(err, "unable to read authorization code")
 	}
 
 	tok, err := config.Exchange(context.TODO(), authCode)
 	if err != nil {
-		log.Fatalf("Unable to retrieve token from web: %v", err)
+		return nil, errors.Wrap(err, "unable to retrieve token from web")
 	}
-	return tok
+	return tok, nil
 }
