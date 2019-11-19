@@ -102,6 +102,10 @@ func ReadSecrets() (Secrets, string, error) {
 	nvl := NewVersionedLoader(defaultFile)
 
 	contents, err := nvl.ReadState()
+	// First run case with FileNotFound exception. Mask this and return empty placeholders
+	if os.IsNotExist(err) {
+		return Secrets{}, "", nil
+	}
 	if err != nil {
 		return nil, "", errors.Wrap(err, "failed parsing all known envelope formats")
 	}
