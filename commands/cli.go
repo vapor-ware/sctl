@@ -375,14 +375,13 @@ func BuildContextualMenu() []cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := validateContext(c, "run")
-				if err != nil {
-					return err
-				}
 
 				var secrets []utils.Secret
 				var arguments []string = c.Args()
 				var keyURI string
+				// TODO: Not real crazy about this pattern but we have to satisfy
+				// moving the validateContext() into the path-evaluation below
+				var err error
 
 				cmd := exec.Command(arguments[0], arguments[1:]...)
 				cmd.Env = os.Environ()
@@ -401,6 +400,10 @@ func BuildContextualMenu() []cli.Command {
 					var client cloud.KMS
 					if keyURI == "" {
 						log.Warn("No KeyURI found in envelope. Required usage of flag/env config.")
+						err := validateContext(c, "run")
+						if err != nil {
+							return err
+						}
 						client = cloud.NewGCPKMS(c.String("key"))
 					} else {
 						log.Debug("Found Key Identifier: ", keyURI)
