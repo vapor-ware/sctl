@@ -45,10 +45,14 @@ func BuildContextualMenu() []cli.Command {
 			Action: func(c *cli.Context) error {
 
 				// Check for KMS key uri, and presence of the secrets name
-				err := validateContext(c, "add")
-				if err != nil {
-					return err
-				}
+				var err error
+				var keyURI string
+				//:= validateContext(c, "add")
+				//if err != nil {
+				//	return err
+				//}
+
+				_, keyURI, err = utils.ReadSecrets()
 
 				var plaintext []byte
 
@@ -88,8 +92,23 @@ func BuildContextualMenu() []cli.Command {
 					plaintext = []byte(base64.StdEncoding.EncodeToString(plaintext))
 				}
 
-				// Init a KMS client
-				client := cloud.NewGCPKMS(c.String("key"))
+				// Work with the envelope's provided key or switch to CLI flags/env
+				var client cloud.KMS
+				if keyURI == "" {
+					log.Warn("No KeyURI found in envelope. Required usage of flag/env config.")
+					// use the switch-case to ensure we have a key set in this context
+					err := validateContext(c, "default")
+					if err != nil {
+						return err
+					}
+					client = cloud.NewGCPKMS(c.String("key"))
+					// This ensures the final addSecret will consume the configuration
+					// key should we fall down to that case
+					keyURI = c.String("key")
+				} else {
+					log.Debug("Found Key Identifier: ", keyURI)
+					client = cloud.NewGCPKMS(keyURI)
+				}
 
 				cypher, err := client.Encrypt(plaintext)
 				if err != nil {
@@ -104,7 +123,7 @@ func BuildContextualMenu() []cli.Command {
 					Encoding:   secretEncoding,
 				}
 
-				return utils.AddSecret(toAdd, c.String("key"), true)
+				return utils.AddSecret(toAdd, keyURI, true)
 			},
 		},
 		{
@@ -269,6 +288,8 @@ func BuildContextualMenu() []cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
+				// read context check only cares about the argument as a parameter
+				// so check that invocation was correct first
 				ctxerr := validateContext(c, "read")
 				if ctxerr != nil {
 					return ctxerr
@@ -281,12 +302,10 @@ func BuildContextualMenu() []cli.Command {
 
 				searchTerm := c.Args().First()
 
-				toDecrypt, findErr := secrets.Find(strings.ToUpper(searchTerm))
+				locatedSecret, findErr := secrets.Find(strings.ToUpper(searchTerm))
 				if findErr != nil {
 					return findErr
 				}
-
-				locatedSecret := secrets[toDecrypt]
 
 				// uncan the base64
 				decoded, err := base64.StdEncoding.DecodeString(locatedSecret.Cyphertext)
@@ -297,7 +316,8 @@ func BuildContextualMenu() []cli.Command {
 				var client cloud.KMS
 				if keyURI == "" {
 					log.Warn("No KeyURI found in envelope. Required usage of flag/env config.")
-					err := validateContext(c, "read")
+					// use the switch-case to ensure we have a key set in this context
+					err := validateContext(c, "default")
 					if err != nil {
 						return err
 					}
@@ -521,7 +541,7 @@ func validateContext(c *cli.Context, context string) error {
 			return errors.New("usage: sctl add SECRET_ALIAS")
 		}
 	case "read":
-		if len(c.Args()) == 0 {
+		if c.Args().First() == "" {
 			return errors.New("usage: sctl read SECRET_ALIAS")
 		}
 	default:

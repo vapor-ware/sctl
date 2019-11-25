@@ -2,11 +2,11 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -53,6 +53,17 @@ func (s *Secrets) Add(toAdd Secret) {
 	*s = append(*s, toAdd)
 }
 
+// Find searches the envelope for a named string. Returns a secret whos name matches
+// the search term
+func (s *Secrets) Find(secretName string) (Secret, error) {
+	for _, n := range *s {
+		if secretName == n.Name {
+			return n, nil
+		}
+	}
+	return Secret{}, fmt.Errorf("Secret %s not found", secretName)
+}
+
 // V2 Secrets is a representation of the envelope enhanced to track their
 // own key URI.
 // This secret wrapper will validate that an incoming request to encrypt
@@ -93,17 +104,6 @@ func (s *V2) SameKey(key string) bool {
 // GetVersion returns the statically declared version for the type of SecretsV2 - "2"
 func (s V2) GetVersion() string {
 	return "2"
-}
-
-// Find searches the envelope for a named string. Returns the index of the element found
-// in the envelope or -1 if not found.
-func (s *Secrets) Find(secretName string) (int, error) {
-	for i, n := range *s {
-		if secretName == n.Name {
-			return i, nil
-		}
-	}
-	return 0, errors.New("Secret not found")
 }
 
 // Load will attempt to parse the indicated Filepath from the V2 object and populate the struct

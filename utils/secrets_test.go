@@ -46,6 +46,41 @@ func TestSecretAddRotation(t *testing.T) {
 
 }
 
+func TestSecretFind(t *testing.T) {
+	s := Secrets{}
+	s.Add(Secret{
+		Name:       "TEST",
+		Cyphertext: "123TEST",
+	})
+
+	found, searchErr := s.Find("TEST")
+	if searchErr != nil {
+		t.Errorf("Unexpected error, wanted: nil Got: %v", searchErr)
+	}
+
+	if found.Name != "TEST" {
+		t.Errorf("Unexpected value, Wanted: TEST   Got: %s", found.Name)
+	}
+
+	if found.Cyphertext != "123TEST" {
+		t.Errorf("Unexpected value, Wanted: 123TEST GOT: %s", found.Cyphertext)
+	}
+}
+
+func TestSecretFindRaisesError(t *testing.T) {
+	s := Secrets{}
+	s.Add(Secret{
+		Name:       "TEST",
+		Cyphertext: "123TEST",
+	})
+
+	_, searchErr := s.Find("NO")
+	if searchErr == nil {
+		t.Error("Unexpected success, wanted: Secret Not Found Got: nil")
+	}
+
+}
+
 func TestV2SameKeyV2Migration(t *testing.T) {
 	s := V2{}
 
