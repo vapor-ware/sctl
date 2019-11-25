@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
@@ -50,6 +51,17 @@ func (s *Secrets) Add(toAdd Secret) {
 		}
 	}
 	*s = append(*s, toAdd)
+}
+
+// Find searches the envelope for a named string. Returns a secret whos name matches
+// the search term
+func (s *Secrets) Find(secretName string) (Secret, error) {
+	for _, n := range *s {
+		if secretName == n.Name {
+			return n, nil
+		}
+	}
+	return Secret{}, fmt.Errorf("Secret %s not found", secretName)
 }
 
 // V2 Secrets is a representation of the envelope enhanced to track their

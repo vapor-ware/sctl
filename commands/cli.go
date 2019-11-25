@@ -44,11 +44,16 @@ func BuildContextualMenu() []cli.Command {
 			},
 			Action: func(c *cli.Context) error {
 
-				// Check for KMS key uri, and presence of the secrets name
-				err := validateContext(c, "add")
-				if err != nil {
-					return err
+				ctxerr := validateContext(c, "add")
+				if ctxerr != nil {
+					return ctxerr
 				}
+
+				// Check for KMS key uri, and presence of the secrets name
+				var err error
+				var keyURI string
+
+				_, keyURI, err = utils.ReadSecrets()
 
 				var plaintext []byte
 
@@ -88,8 +93,23 @@ func BuildContextualMenu() []cli.Command {
 					plaintext = []byte(base64.StdEncoding.EncodeToString(plaintext))
 				}
 
-				// Init a KMS client
-				client := cloud.NewGCPKMS(c.String("key"))
+				// Work with the envelope's provided key or switch to CLI flags/env
+				var client cloud.KMS
+				if keyURI == "" {
+					log.Warn("No KeyURI found in envelope. Required usage of flag/env config.")
+					// use the switch-case to ensure we have a key set in this context
+					err := validateContext(c, "default")
+					if err != nil {
+						return err
+					}
+					client = cloud.NewGCPKMS(c.String("key"))
+					// This ensures the final addSecret will consume the configuration
+					// key should we fall down to that case
+					keyURI = c.String("key")
+				} else {
+					log.Debug("Found Key Identifier: ", keyURI)
+					client = cloud.NewGCPKMS(keyURI)
+				}
 
 				cypher, err := client.Encrypt(plaintext)
 				if err != nil {
@@ -104,7 +124,7 @@ func BuildContextualMenu() []cli.Command {
 					Encoding:   secretEncoding,
 				}
 
-				return utils.AddSecret(toAdd, c.String("key"), true)
+				return utils.AddSecret(toAdd, keyURI, true)
 			},
 		},
 		{
@@ -254,6 +274,76 @@ func BuildContextualMenu() []cli.Command {
 				for _, k := range knownKeys {
 					fmt.Println(k)
 				}
+				return nil
+			},
+		},
+		{
+			Name:     "read",
+			Usage:    "Decrypt and display a named secret",
+			Category: statecategory,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:   "key",
+					EnvVar: "SCTL_KEY",
+					Usage:  "KMS Key URI",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				// read context check only cares about the argument as a parameter
+				// so check that invocation was correct first
+				ctxerr := validateContext(c, "read")
+				if ctxerr != nil {
+					return ctxerr
+				}
+
+				secrets, keyURI, err := utils.ReadSecrets()
+				if err != nil {
+					return err
+				}
+
+				searchTerm := c.Args().First()
+
+				locatedSecret, findErr := secrets.Find(strings.ToUpper(searchTerm))
+				if findErr != nil {
+					return findErr
+				}
+
+				// uncan the base64
+				decoded, err := base64.StdEncoding.DecodeString(locatedSecret.Cyphertext)
+				if err != nil {
+					return errors.Wrap(err, "failed secret decode")
+				}
+				// Work with the envelope's provided key or switch to CLI flags/env
+				var client cloud.KMS
+				if keyURI == "" {
+					log.Warn("No KeyURI found in envelope. Required usage of flag/env config.")
+					// use the switch-case to ensure we have a key set in this context
+					err := validateContext(c, "default")
+					if err != nil {
+						return err
+					}
+					client = cloud.NewGCPKMS(c.String("key"))
+				} else {
+					log.Debug("Found Key Identifier: ", keyURI)
+					client = cloud.NewGCPKMS(keyURI)
+				}
+				cypher, err := client.Decrypt(decoded)
+				if err != nil {
+					return errors.Wrap(err, "failed secret decrypt")
+				}
+
+				// switch output if encoding == base64
+				if locatedSecret.Encoding == "base64" {
+					cypher, err = base64.StdEncoding.DecodeString(string(cypher))
+					if err != nil {
+						return errors.Wrap(err, "failed secret decode")
+					}
+				} else {
+					log.Debugf("skipping decode of %v due to encoding != base64", locatedSecret.Name)
+				}
+
+				fmt.Println(string(cypher))
+
 				return nil
 			},
 		},
@@ -420,7 +510,7 @@ func BuildContextualMenu() []cli.Command {
 							return errors.Wrap(err, "failed secret decode")
 						}
 					} else {
-						log.Printf("skipping decode of %v due to encoding != base64", secret.Name)
+						log.Debugf("skipping decode of %v due to encoding != base64", secret.Name)
 					}
 					// Format the decrypted data for ENV consumption
 					skrt := fmt.Sprintf("%s=%v", secret.Name, string(cypher))
@@ -443,13 +533,14 @@ func validateContext(c *cli.Context, context string) error {
 
 	switch context {
 	case "add":
-		// disallow empty key data
-		if len(c.String("key")) == 0 {
-			return errors.New("missing configuration for key")
-		}
 		// disallow empty secret name
 		if c.Args().First() == "" {
 			return errors.New("usage: sctl add SECRET_ALIAS")
+		}
+	case "read":
+		// disallow empty secret name
+		if c.Args().First() == "" {
+			return errors.New("usage: sctl read SECRET_ALIAS")
 		}
 	default:
 		if len(c.String("key")) == 0 {
