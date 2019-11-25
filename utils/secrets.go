@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -92,6 +93,17 @@ func (s *V2) SameKey(key string) bool {
 // GetVersion returns the statically declared version for the type of SecretsV2 - "2"
 func (s V2) GetVersion() string {
 	return "2"
+}
+
+// Find searches the envelope for a named string. Returns the index of the element found
+// in the envelope or -1 if not found.
+func (s *Secrets) Find(secretName string) (int, error) {
+	for i, n := range *s {
+		if secretName == n.Name {
+			return i, nil
+		}
+	}
+	return 0, errors.New("Secret not found")
 }
 
 // Load will attempt to parse the indicated Filepath from the V2 object and populate the struct
