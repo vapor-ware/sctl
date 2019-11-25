@@ -44,13 +44,14 @@ func BuildContextualMenu() []cli.Command {
 			},
 			Action: func(c *cli.Context) error {
 
+				ctxerr := validateContext(c, "add")
+				if ctxerr != nil {
+					return ctxerr
+				}
+
 				// Check for KMS key uri, and presence of the secrets name
 				var err error
 				var keyURI string
-				//:= validateContext(c, "add")
-				//if err != nil {
-				//	return err
-				//}
 
 				_, keyURI, err = utils.ReadSecrets()
 
@@ -532,15 +533,12 @@ func validateContext(c *cli.Context, context string) error {
 
 	switch context {
 	case "add":
-		// disallow empty key data
-		if len(c.String("key")) == 0 {
-			return errors.New("missing configuration for key")
-		}
 		// disallow empty secret name
 		if c.Args().First() == "" {
 			return errors.New("usage: sctl add SECRET_ALIAS")
 		}
 	case "read":
+		// disallow empty secret name
 		if c.Args().First() == "" {
 			return errors.New("usage: sctl read SECRET_ALIAS")
 		}
