@@ -101,7 +101,7 @@ func (gc GoogleCredential) JSON() ([]byte, error) {
 	// declared credential.
 	external, exists := os.LookupEnv(CredentialVar)
 	if exists {
-		log.Printf("Using env exported %s", CredentialVar)
+		log.Debugf("Using env exported %s", CredentialVar)
 		f, err := ioutil.ReadFile(external)
 		if err != nil {
 			return []byte{}, errors.Wrapf(err, "Unable to read %s", CredentialVar)
