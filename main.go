@@ -46,7 +46,7 @@ func main() {
 		if err != nil {
 			// A failure to check should not result in a failure to use the tool. Just
 			// log the issue and continue on.
-			log.Printf("failed to check for latest version: %v", err)
+			log.Debugf("failed to check for latest version: %v", err)
 			return nil
 		}
 		if res.Outdated {
