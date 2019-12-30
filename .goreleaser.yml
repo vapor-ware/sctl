@@ -1,3 +1,4 @@
+project_name: sctl
 before:
   hooks:
   - go mod vendor
@@ -16,6 +17,19 @@ archives:
     windows: Windows
     386: i386
     amd64: x86_64
+release:
+  prerelease: auto
+brews:
+- github:
+    owner: vapor-ware
+    name: homebrew-formula
+  commit_author:
+    name: vio-bot
+    email: 'marco+viogh@vapor.io'
+  homepage: 'https://github.com/vapor-ware/sctl'
+  description: 'Manage secrets on Google Cloud Platform with KMS and state files'
+  test: |
+    system "#{bin}/sctl --version"
 checksum:
   name_template: 'checksums.txt'
 snapshot:
