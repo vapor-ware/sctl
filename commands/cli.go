@@ -41,6 +41,11 @@ func BuildContextualMenu() []cli.Command {
 					Name:  "no-decode",
 					Usage: "When reading the secret, do not base64 decode",
 				},
+				cli.StringFlag{
+					Name:  "envelope",
+					Usage: "Filepath to envelope",
+					Value: ".scuttle.json",
+				},
 			},
 			Action: func(c *cli.Context) error {
 
@@ -53,7 +58,7 @@ func BuildContextualMenu() []cli.Command {
 				var err error
 				var keyURI string
 
-				_, keyURI, err = utils.ReadSecrets()
+				_, keyURI, err = utils.ReadSecrets(c.String("envelope"))
 
 				var plaintext []byte
 
@@ -124,7 +129,7 @@ func BuildContextualMenu() []cli.Command {
 					Encoding:   secretEncoding,
 				}
 
-				return utils.AddSecret(toAdd, keyURI, true)
+				return utils.AddSecret(toAdd, keyURI, true, c.String("envelope"))
 			},
 		},
 		{
@@ -261,8 +266,15 @@ func BuildContextualMenu() []cli.Command {
 			Name:     "list",
 			Usage:    "List known secrets",
 			Category: statecategory,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "envelope",
+					Usage: "Filepath to envelope",
+					Value: ".scuttle.json",
+				},
+			},
 			Action: func(c *cli.Context) error {
-				secrets, _, err := utils.ReadSecrets()
+				secrets, _, err := utils.ReadSecrets(c.String("envelope"))
 				if err != nil {
 					return err
 				}
@@ -287,6 +299,11 @@ func BuildContextualMenu() []cli.Command {
 					EnvVar: "SCTL_KEY",
 					Usage:  "KMS Key URI",
 				},
+				cli.StringFlag{
+					Name:  "envelope",
+					Usage: "Filepath to envelope",
+					Value: ".scuttle.json",
+				},
 			},
 			Action: func(c *cli.Context) error {
 				// read context check only cares about the argument as a parameter
@@ -296,7 +313,7 @@ func BuildContextualMenu() []cli.Command {
 					return ctxerr
 				}
 
-				secrets, keyURI, err := utils.ReadSecrets()
+				secrets, keyURI, err := utils.ReadSecrets(c.String("envelope"))
 				if err != nil {
 					return err
 				}
@@ -361,12 +378,17 @@ func BuildContextualMenu() []cli.Command {
 					Name:  "newkey",
 					Usage: "New KMS Key URI (optional)",
 				},
+				cli.StringFlag{
+					Name:  "envelope",
+					Usage: "Filepath to envelope",
+					Value: ".scuttle.json",
+				},
 			},
 			Action: func(c *cli.Context) error {
 				var sctlKey string
 				newKey := c.String("newkey")
 
-				secrets, keyURI, err := utils.ReadSecrets()
+				secrets, keyURI, err := utils.ReadSecrets(c.String("envelope"))
 				if err != nil {
 					return err
 				}
@@ -410,7 +432,7 @@ func BuildContextualMenu() []cli.Command {
 						log.Debug("Saving new secret: ", toAdd.Name, " With key: ", newKey)
 						// ReKeying with a new secret is an explicit process. Invoke addSecret without
 						// key validation
-						err = utils.AddSecret(toAdd, newKey, false)
+						err = utils.AddSecret(toAdd, newKey, false, c.String("envelope"))
 						if err != nil {
 							return err
 						}
@@ -431,7 +453,7 @@ func BuildContextualMenu() []cli.Command {
 						Encoding:   secret.Encoding,
 					}
 
-					err = utils.AddSecret(toAdd, sctlKey, true)
+					err = utils.AddSecret(toAdd, sctlKey, true, c.String("envelope"))
 					if err != nil {
 						return err
 					}
@@ -443,9 +465,16 @@ func BuildContextualMenu() []cli.Command {
 			Name:     "rm",
 			Usage:    "Delete a secret from state",
 			Category: statecategory,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "envelope",
+					Usage: "Filepath to envelope",
+					Value: ".scuttle.json",
+				},
+			},
 			Action: func(c *cli.Context) error {
 				secretName := strings.ToUpper(c.Args().First())
-				return utils.DeleteSecret(secretName)
+				return utils.DeleteSecret(secretName, c.String("envelope"))
 			},
 		},
 		{
@@ -463,6 +492,11 @@ func BuildContextualMenu() []cli.Command {
 					Name:  "interactive, i",
 					Usage: "Run the command in an interactive session",
 				},
+				cli.StringFlag{
+					Name:  "envelope",
+					Usage: "Filepath to envelope",
+					Value: ".scuttle.json",
+				},
 			},
 			Action: func(c *cli.Context) error {
 
@@ -476,7 +510,7 @@ func BuildContextualMenu() []cli.Command {
 				cmd := exec.Command(arguments[0], arguments[1:]...)
 				cmd.Env = os.Environ()
 				// TODO: Clean this up and handle the error case.
-				secrets, keyURI, err = utils.ReadSecrets()
+				secrets, keyURI, err = utils.ReadSecrets(c.String("envelope"))
 				if err != nil {
 					return err
 				}
