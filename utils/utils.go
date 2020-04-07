@@ -122,6 +122,6 @@ func DeleteSecret(toRemove string, envelope string) error {
 		return errors.Wrap(err, "failed parsing all known envelope formats - refusing to remove secret")
 	}
 	contents.Secrets.Remove(toRemove)
-	contents.Filepath = defaultFile
+	contents.Filepath = envelope
 	return contents.Save()
 }

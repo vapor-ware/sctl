@@ -241,8 +241,7 @@ func TestAddSecretHelperV1ToV2(t *testing.T) {
 	s := Secrets{}
 	s.Add(Secret{Name: "TESTV1UPGRADE", Cyphertext: "Banana", Created: time.Now(), Encoding: "plain"})
 
-	v1StatePath := tempPath + "/.scuttle.json"
-	v1Writer := NewIOStateManager(v1StatePath)
+	v1Writer := NewIOStateManager(tempFile)
 	err := v1Writer.WriteState(s)
 	if err != nil {
 		t.Errorf("Unexpected error during WriteState: %v", err)
@@ -259,12 +258,12 @@ func TestAddSecretHelperV1ToV2(t *testing.T) {
 	}
 
 	// Add a secret
-	err = AddSecret(Secret{Name: "TestV2Upgrade", Cyphertext: "Mango", Created: time.Now(), Encoding: "plain"}, "path/to/key", true, v1StatePath)
+	err = AddSecret(Secret{Name: "TestV2Upgrade", Cyphertext: "Mango", Created: time.Now(), Encoding: "plain"}, "path/to/key", true, tempFile)
 	if err != nil {
 		t.Errorf("Unexpected error during AddSecret: %v", err)
 	}
 	// re-evaluate the serialized data recalled from disk and inspect for variant behavior
-	state, keyURI, err := ReadSecrets(v1StatePath)
+	state, keyURI, err := ReadSecrets(tempFile)
 	if err != nil {
 		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
 	}
@@ -274,4 +273,67 @@ func TestAddSecretHelperV1ToV2(t *testing.T) {
 	if keyURI != "path/to/key" {
 		t.Errorf("Unexpected value for keyURI, Wanted: /google/keys/somekey, Got: %v", keyURI)
 	}
+}
+
+func TestMultiEnvelopeSamePath(t *testing.T) {
+	tempPath, currPath, tempFile := testContextSetup("TestMultiEnvelopeSamePath", t)
+	defer testContextSwitch(t, tempPath, currPath)
+
+	s := Secrets{}
+
+	hush := Secret{
+		Name:       "TEST",
+		Cyphertext: "TESTCASEADDSECRET",
+		Created:    time.Now(),
+		Encoding:   "plain",
+	}
+
+	s.Add(hush)
+
+	defaultWriter := NewIOStateManager(tempFile)
+	err := defaultWriter.WriteState(s)
+	if err != nil {
+		t.Errorf("Unexpected error during WriteState: %v", err)
+	}
+
+	err = AddSecret(hush, "", true, tempFile)
+	if err != nil {
+		t.Errorf("Unexpected error during AddSecret: %v", err)
+	}
+
+	state, keyURI, err := ReadSecrets(tempFile)
+	if err != nil {
+		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
+	}
+	if len(state) != 1 {
+		t.Errorf("Unexpected Slice Length, Wanted: 1, Got: %v", len(state))
+	}
+	if keyURI != "" {
+		t.Errorf("Unexpected value for keyURI, Wanted: '', Got: %v", keyURI)
+	}
+
+	// Now add another envelope in the same path, and perform the same operations on another file
+	hush = Secret{
+		Name:       "EXTRA",
+		Cyphertext: "EXTRACYPHER",
+		Created:    time.Now(),
+		Encoding:   "plain",
+	}
+	s.Add(hush)
+	extraFile := tempPath + "/extra.json"
+
+	extraWriter := NewIOStateManager(extraFile)
+	extraWriter.WriteState(s)
+
+	state, keyURI, err = ReadSecrets(extraFile)
+	if err != nil {
+		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
+	}
+	if len(state) != 2 {
+		t.Errorf("Unexpected Slice Length, Wanted: 2, Got: %v", len(state))
+	}
+	if keyURI != "" {
+		t.Errorf("Unexpected value for keyURI, Wanted: '', Got: %v", keyURI)
+	}
+
 }
