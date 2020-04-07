@@ -55,17 +55,17 @@ func eofKeySequenceText() string {
 }
 
 // AddSecret Recalls state if present, and appends a secret to the state file
-func AddSecret(toAdd Secret, keyURI string, keyCheck bool) error {
-	envelope := V2{Filepath: defaultFile}
-	envelope.KeyIdentifier = keyURI
-	nvl := NewVersionedLoader(defaultFile)
+func AddSecret(toAdd Secret, keyURI string, keyCheck bool, envelope string) error {
+	stateFile := V2{Filepath: envelope}
+	stateFile.KeyIdentifier = keyURI
+	nvl := NewVersionedLoader(envelope)
 
 	contents, err := nvl.ReadState()
 	if err != nil {
 		// First run case with FileNotFound exception. Mask this and save
 		if os.IsNotExist(err) {
-			envelope.Secrets.Add(toAdd)
-			return envelope.Save()
+			stateFile.Secrets.Add(toAdd)
+			return stateFile.Save()
 		}
 		// Handle any other parsing errors in a Fatal fashion
 		if err != nil {
@@ -83,23 +83,23 @@ func AddSecret(toAdd Secret, keyURI string, keyCheck bool) error {
 		}
 	}
 
-	jsonData, err := json.MarshalIndent(envelope, "", " ")
+	jsonData, err := json.MarshalIndent(stateFile, "", " ")
 	// No idea how we would get here, but if this fails, we'll need to halt execution otherwise we're
 	// likely to corrupt state.
 	if err != nil {
 		return errors.Wrap(err, "unable to marshall secret envelope for storage on disk")
 	}
 	log.Debugf("Saving secret envelope with: %v", string(jsonData))
-	envelope.Secrets = contents.Secrets
+	stateFile.Secrets = contents.Secrets
 
-	envelope.Secrets.Add(toAdd)
-	return envelope.Save()
+	stateFile.Secrets.Add(toAdd)
+	return stateFile.Save()
 }
 
 // ReadSecrets is a Wrapper to return an array of Secrets for processing
 // Along with any KeyIdentifier found in the envelope for decryption
-func ReadSecrets() (Secrets, string, error) {
-	nvl := NewVersionedLoader(defaultFile)
+func ReadSecrets(envelope string) (Secrets, string, error) {
+	nvl := NewVersionedLoader(envelope)
 
 	contents, err := nvl.ReadState()
 	// First run case with FileNotFound exception. Mask this and return empty placeholders
@@ -114,14 +114,14 @@ func ReadSecrets() (Secrets, string, error) {
 
 // DeleteSecret is a Wrapper to remove a secret from state
 // toRemove - string - named key of the secret to eject from the state storage
-func DeleteSecret(toRemove string) error {
-	nvl := NewVersionedLoader(defaultFile)
+func DeleteSecret(toRemove string, envelope string) error {
+	nvl := NewVersionedLoader(envelope)
 
 	contents, err := nvl.ReadState()
 	if err != nil {
 		return errors.Wrap(err, "failed parsing all known envelope formats - refusing to remove secret")
 	}
 	contents.Secrets.Remove(toRemove)
-	contents.Filepath = defaultFile
+	contents.Filepath = envelope
 	return contents.Save()
 }
