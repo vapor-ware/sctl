@@ -42,9 +42,10 @@ func BuildContextualMenu() []cli.Command {
 					Usage: "When reading the secret, do not base64 decode",
 				},
 				cli.StringFlag{
-					Name:  "envelope",
-					Usage: "Filepath to envelope",
-					Value: ".scuttle.json",
+					Name:   "envelope",
+					Usage:  "Filepath to envelope",
+					EnvVar: "SCTL_ENVELOPE",
+					Value:  ".scuttle.json",
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -268,9 +269,10 @@ func BuildContextualMenu() []cli.Command {
 			Category: statecategory,
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "envelope",
-					Usage: "Filepath to envelope",
-					Value: ".scuttle.json",
+					Name:   "envelope",
+					Usage:  "Filepath to envelope",
+					EnvVar: "SCTL_ENVELOPE",
+					Value:  ".scuttle.json",
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -300,9 +302,10 @@ func BuildContextualMenu() []cli.Command {
 					Usage:  "KMS Key URI",
 				},
 				cli.StringFlag{
-					Name:  "envelope",
-					Usage: "Filepath to envelope",
-					Value: ".scuttle.json",
+					Name:   "envelope",
+					EnvVar: "SCTL_ENVELOPE",
+					Usage:  "Filepath to envelope",
+					Value:  ".scuttle.json",
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -379,9 +382,10 @@ func BuildContextualMenu() []cli.Command {
 					Usage: "New KMS Key URI (optional)",
 				},
 				cli.StringFlag{
-					Name:  "envelope",
-					Usage: "Filepath to envelope",
-					Value: ".scuttle.json",
+					Name:   "envelope",
+					EnvVar: "SCTL_ENVELOPE",
+					Usage:  "Filepath to envelope",
+					Value:  ".scuttle.json",
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -467,9 +471,10 @@ func BuildContextualMenu() []cli.Command {
 			Category: statecategory,
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "envelope",
-					Usage: "Filepath to envelope",
-					Value: ".scuttle.json",
+					Name:   "envelope",
+					EnvVar: "SCTL_ENVELOPE",
+					Usage:  "Filepath to envelope",
+					Value:  ".scuttle.json",
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -493,9 +498,10 @@ func BuildContextualMenu() []cli.Command {
 					Usage: "Run the command in an interactive session",
 				},
 				cli.StringFlag{
-					Name:  "envelope",
-					Usage: "Filepath to envelope",
-					Value: ".scuttle.json",
+					Name:   "envelope",
+					EnvVar: "SCTL_ENVELOPE",
+					Usage:  "Filepath to envelope",
+					Value:  ".scuttle.json",
 				},
 			},
 			Action: func(c *cli.Context) error {
