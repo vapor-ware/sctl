@@ -102,7 +102,7 @@ func BuildContextualMenu() []cli.Command {
 				// Work with the envelope's provided key or switch to CLI flags/env
 				var client cloud.KMS
 				if keyURI == "" {
-					log.Warn("No KeyURI found in envelope. Required usage of flag/env config.")
+					log.Warn("No KeyURI found in envelope. Required usage of flag/env for SCTL_KEY.")
 					// use the switch-case to ensure we have a key set in this context
 					err := validateContext(c, "default")
 					if err != nil {
@@ -336,7 +336,7 @@ func BuildContextualMenu() []cli.Command {
 				// Work with the envelope's provided key or switch to CLI flags/env
 				var client cloud.KMS
 				if keyURI == "" {
-					log.Warn("No KeyURI found in envelope. Required usage of flag/env config.")
+					log.Debug("No KeyURI found in envelope. Required usage of flag/env for SCTL_KEY.")
 					// use the switch-case to ensure we have a key set in this context
 					err := validateContext(c, "default")
 					if err != nil {
@@ -398,7 +398,7 @@ func BuildContextualMenu() []cli.Command {
 				}
 
 				if keyURI == "" {
-					log.Debug("No KeyURI found in envelope. Using flag/env config.")
+					log.Debug("No KeyURI found in envelope. Using flag/env for SCTL_KEY.")
 					sctlKey = c.String("key")
 				} else {
 					log.Debug("Using key found in envelope: ", keyURI)
@@ -529,7 +529,7 @@ func BuildContextualMenu() []cli.Command {
 					// Work with the envelope's provided key or switch to CLI flags/env
 					var client cloud.KMS
 					if keyURI == "" {
-						log.Warn("No KeyURI found in envelope. Required usage of flag/env config.")
+						log.Debug("No KeyURI found in envelope. Required usage of flag/env for SCTL_KEY.")
 						err := validateContext(c, "run")
 						if err != nil {
 							return err
