@@ -111,6 +111,14 @@ $ cat .scuttle.json
 # sctl run helmfile diff
 ```
 
+Key decryption is simple:
+```
+$ sctl read foo
+bar
+```
+
+
+
 ### Rotate state / re-key
 
 As you deprecate/disable older KMS key revisions, it can be prudent to migrate
