@@ -102,18 +102,19 @@ func BuildContextualMenu() []cli.Command {
 				// Work with the envelope's provided key or switch to CLI flags/env
 				var client cloud.KMS
 				if keyURI == "" {
-					log.Warn("No KeyURI found in envelope. Required usage of flag/env for SCTL_KEY.")
-					// use the switch-case to ensure we have a key set in this context
-					err := validateContext(c, "default")
-					if err != nil {
-						return err
+					// If no key URI is found in an existing scuttle config, check that the 'key' flag
+					// was set, either through command line or env var.
+					key := c.String("key")
+					if key == "" {
+						return errors.New("missing configuration for key")
 					}
-					client = cloud.NewGCPKMS(c.String("key"))
+
+					client = cloud.NewGCPKMS(key)
 					// This ensures the final addSecret will consume the configuration
 					// key should we fall down to that case
-					keyURI = c.String("key")
+					keyURI = key
 				} else {
-					log.Debug("Found Key Identifier: ", keyURI)
+					log.Debugf("Found Key Identifier: %s", keyURI)
 					client = cloud.NewGCPKMS(keyURI)
 				}
 
