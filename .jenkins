@@ -1,52 +1,14 @@
 #!/usr/bin/env groovy
 
-pipeline {
-  agent {
-    label 'golang-alpha'
-  }
-  stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
-    }
-    stage('Lint') {
-      steps {
-        container('golang') {
-          sh 'golint -set_exit_status ./...'
-        }
-      }
-    }
-    stage('Test') {
-      environment {
-          GOOGLE_APPLICATION_CREDENTIALS = credentials('sctl-ci-credential')
-          SCTL_KEY ="projects/vapor-staging/locations/us/keyRings/sctl/cryptoKeys/sctl-dev"
-      }
-      steps {
-        container('golang') {
-          sh 'go test -race -cover -v ./...'
-        }
-      }
-    }
-    stage('Snapshot Build') {
-      steps {
-        container('golang') {
-          sh 'goreleaser release --debug --snapshot --skip-publish --rm-dist'
-        }
-      }
-    }
-    stage('Tagged Release') {
-      when {
-        buildingTag()
-      }
-      environment {
-        GITHUB_TOKEN = credentials('vio-bot-gh-token')
-      }
-      steps {
-        container('golang') {
-          sh 'goreleaser release --debug --rm-dist'
-        }
-      }
-    }
-  }
-}
+// Include this shared CI repository to load script helpers and libraries.
+library identifier: 'vapor@1.0.3-RC1', retriever: modernSCM([
+  $class: 'GitSCMSource',
+  remote: 'https://github.com/vapor-ware/ci-shared.git',
+  credentialsId: 'vio-bot-gh',
+])
+
+golangPipeline([
+  'image': 'vaporio/sctl',
+  'skipIntegrationTest': true,
+  'skipSetup': true,
+])
