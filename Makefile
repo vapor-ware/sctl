@@ -16,3 +16,5 @@ lint:
 
 snapshot:
 	goreleaser release --debug --snapshot --skip-publish --rm-dist
+
+unit-test: test
