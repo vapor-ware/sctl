@@ -2,6 +2,8 @@ package utils
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSecretRemove(t *testing.T) {
@@ -17,12 +19,8 @@ func TestSecretRemove(t *testing.T) {
 	}
 
 	s.Remove("TEST")
-	if len(s) != 1 {
-		t.Errorf("Unexpected length, Wanted: 1  Got: %v", len(s))
-	}
-	if s[0].Name != "DOUBLEMINT" {
-		t.Errorf("Unexpected Element, Wanted: DOUBLEMINT  Got: %s", s[0].Name)
-	}
+	assert.Len(t, s, 1)
+	assert.Equal(t, "DOUBLEMINT", s[0].Name)
 }
 
 func TestSecretAddRotation(t *testing.T) {
@@ -36,14 +34,8 @@ func TestSecretAddRotation(t *testing.T) {
 		Cyphertext: "123TOADD",
 	})
 
-	if len(s) != 1 {
-		t.Errorf("Unexpected length, Wanted: 1  Got: %v", len(s))
-	}
-
-	if s[0].Cyphertext != "123TOADD" {
-		t.Errorf("Unexpected Cyphertext, Wanted: 123TOADD  Got: %s", s[0].Cyphertext)
-	}
-
+	assert.Len(t, s, 1)
+	assert.Equal(t, "123TOADD", s[0].Cyphertext)
 }
 
 func TestSecretFind(t *testing.T) {
@@ -53,18 +45,10 @@ func TestSecretFind(t *testing.T) {
 		Cyphertext: "123TEST",
 	})
 
-	found, searchErr := s.Find("TEST")
-	if searchErr != nil {
-		t.Errorf("Unexpected error, wanted: nil Got: %v", searchErr)
-	}
-
-	if found.Name != "TEST" {
-		t.Errorf("Unexpected value, Wanted: TEST   Got: %s", found.Name)
-	}
-
-	if found.Cyphertext != "123TEST" {
-		t.Errorf("Unexpected value, Wanted: 123TEST GOT: %s", found.Cyphertext)
-	}
+	found, err := s.Find("TEST")
+	assert.NoError(t, err)
+	assert.Equal(t, "TEST", found.Name)
+	assert.Equal(t, "123TEST", found.Cyphertext)
 }
 
 func TestSecretFindRaisesError(t *testing.T) {
@@ -74,11 +58,8 @@ func TestSecretFindRaisesError(t *testing.T) {
 		Cyphertext: "123TEST",
 	})
 
-	_, searchErr := s.Find("NO")
-	if searchErr == nil {
-		t.Error("Unexpected success, wanted: Secret Not Found Got: nil")
-	}
-
+	_, err := s.Find("NO")
+	assert.Error(t, err)
 }
 
 func TestV2SameKeyV2Migration(t *testing.T) {
@@ -88,41 +69,29 @@ func TestV2SameKeyV2Migration(t *testing.T) {
 	// the operator knows what they are doing and save the file
 	s.Secrets = Secrets{Secret{Name: "Test", Cyphertext: "Test"}}
 	expectTrue := s.SameKey("yes")
-	if expectTrue != true {
-		t.Errorf("Expected SameKey to eval to true on condition: len secrets: %v, len KeyIdentifier: %v", len(s.Secrets), len(s.KeyIdentifier))
-	}
+	assert.True(t, expectTrue)
 }
 
+// Check for the usual case of having secrets and having a key identifier to gate writes
 func TestV2SameKeyDifferentKeys(t *testing.T) {
 	s := V2{}
-
 	s.KeyIdentifier = "wont-match"
 	expectFalse := s.SameKey("no")
-
-	// Check for the usual case of having secrets and having a key identifier to gate writes
-	if expectFalse != false {
-		t.Errorf("Expected SameKey to eval to false on condition: Declared KeyIdentifier: %v, Implied KeyIdentifier: %v", s.KeyIdentifier, "no")
-	}
+	assert.False(t, expectFalse)
 }
 
 func TestV2SameKeySameKeys(t *testing.T) {
 	s := V2{}
 	s.KeyIdentifier = "sames"
-
 	expectTrue := s.SameKey("sames")
-
-	if expectTrue != true {
-		t.Errorf("Expected SameKey to eval to true on condition: Declared KeyIdentifier: %v, Implied KeyIdentifier: %v", s.KeyIdentifier, "sames")
-	}
+	assert.True(t, expectTrue)
 }
 
 // This test is largely useless. The GetVersion method returns a static "2" string.
 // So we'll just make sure we get 2 from V2 so we dont accidentally break it.
 func TestV2GetVersion(t *testing.T) {
 	s := V2{}
-	if s.GetVersion() != "2" {
-		t.Errorf("Version identifier error. Expected: 2  Got: %v", s.GetVersion())
-	}
+	assert.Equal(t, "2", s.GetVersion())
 }
 
 func TestV2LoadNonExistant(t *testing.T) {
@@ -131,9 +100,8 @@ func TestV2LoadNonExistant(t *testing.T) {
 	s.Filepath = "../testdata/non-existant.json"
 	err := s.Load()
 
-	if err != nil {
-		t.Errorf("Unexpected behavior. FileNotFound errors should silently be masked.")
-	}
+	// File not found errors should be silently masked in this case.
+	assert.NoError(t, err)
 }
 
 func TestV2LoadSecretV2(t *testing.T) {
@@ -141,10 +109,6 @@ func TestV2LoadSecretV2(t *testing.T) {
 	s.Filepath = "../testdata/test_secret_v2.json"
 	err := s.Load()
 
-	if err != nil {
-		t.Errorf("Unexpected error processing envelope: %v", err)
-	}
-	if len(s.Secrets) != 1 {
-		t.Errorf("Unexpected length of secrets. Wanted: 1  Got: %v", len(s.Secrets))
-	}
+	assert.NoError(t, err)
+	assert.Len(t, s.Secrets, 1)
 }
