@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -267,8 +268,9 @@ func BuildContextualMenu() []cli.Command {
 			},
 		},
 		{
-			Name:     "list",
-			Usage:    "List known secrets",
+			Name:  "list",
+			Usage: "List known secrets",
+
 			Category: statecategory,
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -288,8 +290,8 @@ func BuildContextualMenu() []cli.Command {
 					knownKeys = append(knownKeys, secret.Name)
 				}
 				sort.Strings(knownKeys)
-				for _, k := range knownKeys {
-					fmt.Println(k)
+				for i, k := range knownKeys {
+					fmt.Printf("%d] %s\n", i, k)
 				}
 				return nil
 			},
@@ -325,6 +327,19 @@ func BuildContextualMenu() []cli.Command {
 				}
 
 				searchTerm := c.Args().First()
+
+				if idx, err := strconv.Atoi(searchTerm); err == nil {
+					var knownKeys []string
+					for _, secret := range secrets {
+						knownKeys = append(knownKeys, secret.Name)
+					}
+					sort.Strings(knownKeys)
+
+					if idx >= len(knownKeys) {
+						return errors.New("invalid read index specified")
+					}
+					searchTerm = knownKeys[idx]
+				}
 
 				locatedSecret, findErr := secrets.Find(strings.ToUpper(searchTerm))
 				if findErr != nil {
