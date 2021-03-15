@@ -9,13 +9,14 @@ import (
 	"github.com/tcnksm/go-latest"
 	"github.com/urfave/cli"
 	"github.com/vapor-ware/sctl/commands"
+	"github.com/vapor-ware/sctl/version"
 )
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "sctl"
 	app.Usage = "Manage secrets encrypted by KMS"
-	app.Version = "1.4.2"
+	app.Version = version.Version
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:   "debug",
