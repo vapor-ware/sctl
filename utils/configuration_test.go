@@ -55,6 +55,8 @@ func TestSaveConfig(t *testing.T) {
 
 func TestReadConfiguration(t *testing.T) {
 	c, err := ReadConfiguration()
-	assert.NoError(t, err)
+	if err != nil {
+		assert.True(t, IsConfigLoadErr(err))
+	}
 	assert.NotEmpty(t, c.configPath)
 }
