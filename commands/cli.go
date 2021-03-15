@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -564,6 +565,21 @@ func BuildContextualMenu() []cli.Command {
 					cmd.Stdin = os.Stdin
 				}
 				return cmd.Run()
+			},
+		},
+		{
+			Name:           "bugreport",
+			Usage:          "Collect system information for filing a bug report",
+			SkipArgReorder: true,
+			Action: func(c *cli.Context) error {
+				fmt.Println("File a bug for scuttle here: https://github.com/vapor-ware/sctl/issues/new")
+				fmt.Println("Include the information below to provide better context around the issue:")
+				fmt.Println("")
+				fmt.Printf("version  : %s\n", c.App.Version)
+				fmt.Printf("arch     : %s\n", runtime.GOARCH)
+				fmt.Printf("os       : %s\n", runtime.GOOS)
+				fmt.Printf("compiler : %s\n", runtime.Compiler)
+				return nil
 			},
 		},
 	}
