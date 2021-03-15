@@ -18,6 +18,7 @@ import (
 	"github.com/vapor-ware/sctl/cloud"
 	"github.com/vapor-ware/sctl/credentials"
 	"github.com/vapor-ware/sctl/utils"
+	"github.com/vapor-ware/sctl/version"
 )
 
 const statecategory = "State management"
@@ -579,6 +580,21 @@ func BuildContextualMenu() []cli.Command {
 				fmt.Printf("arch     : %s\n", runtime.GOARCH)
 				fmt.Printf("os       : %s\n", runtime.GOOS)
 				fmt.Printf("compiler : %s\n", runtime.Compiler)
+				return nil
+			},
+		},
+		{
+			Name:  "version",
+			Usage: "Print build and version info",
+			Action: func(c *cli.Context) error {
+				info := version.GetVersion()
+				fmt.Println("sctl")
+				fmt.Printf("  version    : %s\n", info.Version)
+				fmt.Printf("  build date : %s\n", info.BuildDate)
+				fmt.Printf("  git commit : %s\n", info.Commit)
+				fmt.Printf("  git tag    : %s\n", info.Tag)
+				fmt.Printf("  compiler   : %s\n", info.Compiler)
+				fmt.Printf("  platform   : %s/%s\n", info.OS, info.Arch)
 				return nil
 			},
 		},

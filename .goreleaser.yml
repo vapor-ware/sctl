@@ -7,6 +7,10 @@ builds:
   - CGO_ENABLED=0
   ldflags:
   - -w
+  - -X github.com/vapor-ware/sctl/version.BuildDate={{ .Date }}
+  - -X github.com/vapor-ware/sctl/version.Commit={{ .ShortCommit }}
+  - -X github.com/vapor-ware/sctl/version.Tag={{ .Tag }}
+  - -X github.com/vapor-ware/sctl/version.Version={{ .Version }}
   goos:
   - linux
   - darwin
