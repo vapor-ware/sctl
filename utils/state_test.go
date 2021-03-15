@@ -5,15 +5,14 @@ package utils
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestDefaultCaseFactoryIniitalizer - Test the defaults of the initializer
 func TestStateManagerFactoryDefault(t *testing.T) {
 	ism := NewIOStateManager("")
-
-	if ism.filename != ".scuttle.json" {
-		t.Fatalf("Error in default IOStateManager factory filename. Wanted:  .scuttle.json  Got: %s", ism.filename)
-	}
+	assert.Equal(t, ".scuttle.json", ism.filename)
 }
 
 // Test the supported paths of IO management which should result in successful parsing of
@@ -33,16 +32,11 @@ func TestStateManagementReader(t *testing.T) {
 	for _, tt := range testTable {
 		t.Run(tt.name, func(t *testing.T) {
 			secrets, err := tt.sm.ReadState()
+			assert.NoError(t, err)
 
-			if err != nil {
-				t.Errorf("Case %s - Expected nil, got %s", tt.name, err)
-			}
 			for i, sec := range secrets {
-				if sec.Cyphertext != tt.value[i] {
-					t.Errorf("Expected Cyphertext value %s but got %s", tt.value, sec.Cyphertext)
-				}
+				assert.Equal(t, tt.value[i], sec.Cyphertext)
 			}
-
 		})
 	}
 }
@@ -54,51 +48,29 @@ func TestStateManagementWriter(t *testing.T) {
 		{Name: "TEST", Cyphertext: "ABC123", Created: time.Now()},
 		{Name: "TEST2", Cyphertext: "0xD34DB33F", Created: time.Now()},
 	})
-	if err != nil {
-		t.Errorf("Unexpected error during WriteState: %v", err)
-	}
+	assert.NoError(t, err)
 
 	// We've written state if we got this far. Recall from disk and inspect the structure
 	secrets, err := iosm.ReadState()
-	if err != nil {
-		t.Errorf("Unexpected error. Wanted nil Got %s", err)
-	}
+	assert.NoError(t, err)
+	assert.Len(t, secrets, 2)
+	assert.Equal(t, "TEST", secrets[0].Name)
 
-	if len(secrets) != 2 {
-		t.Errorf("Unexpected Deserialize Length: Wanted 2, Got %v", len(secrets))
-	}
-
-	if secrets[0].Name != "TEST" {
-		t.Errorf("Unexpected positional secret name. Wanted TEST Got %s", secrets[0].Name)
-	}
-
-	// Cache the value for comparison
-	firstSecretCypher := secrets[0].Cyphertext
 	secrets[0].Cyphertext = "123ABC"
 	err = iosm.WriteState(secrets)
-	if err != nil {
-		t.Errorf("Unexpected error during WriteState: %v", err)
-	}
+	assert.NoError(t, err)
 
 	// Recall from serialized state
 	secrets, err = iosm.ReadState()
-	if err != nil {
-		t.Errorf("Unexpected error. Wanted nil Got %s", err)
-	}
-
-	if secrets[0].Cyphertext == firstSecretCypher {
-		t.Errorf("Expected Rotation failed, Wanted: 123ABC, Got %s", secrets[0].Cyphertext)
-	}
-
+	assert.NoError(t, err)
+	assert.Equal(t, "123ABC", secrets[0].Cyphertext)
 }
 
 // Validate that we have not changed our default's expectations of working with .scuttle.json if
 // nothing is declared during factory init
 func TestNewVersionedLoaderDefaults(t *testing.T) {
 	vl := NewVersionedLoader("")
-	if vl.Filepath != ".scuttle.json" {
-		t.Fatalf("Error in default VersionedLoader Filepath. Wanted: .scuttle.json  Got: %s", vl.Filepath)
-	}
+	assert.Equal(t, ".scuttle.json", vl.Filepath)
 }
 
 // TestVersionedLoader will attempt to load V1 and V2 formats of scuttle's envelopes.
@@ -120,16 +92,11 @@ func TestVersionedLoader(t *testing.T) {
 	for _, tt := range testTable {
 		t.Run(tt.name, func(t *testing.T) {
 			secrets, err := tt.sm.ReadState()
+			assert.NoError(t, err)
 
-			if err != nil {
-				t.Errorf("Case %s - Expected nil, got %s", tt.name, err)
-			}
 			for i, sec := range secrets.Secrets {
-				if sec.Cyphertext != tt.value[i] {
-					t.Errorf("Expected Cyphertext value %s but got %s", tt.value[i], sec.Cyphertext)
-				}
+				assert.Equal(t, tt.value[i], sec.Cyphertext)
 			}
-
 		})
 	}
 }

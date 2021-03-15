@@ -7,12 +7,14 @@ import (
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // Test Case Setup
-func testContextSetup(temp string, t *testing.T) (string, string, string) {
+func testContextSetup(t *testing.T) (string, string, string) {
 	// Test New Secret in New Context
-	tempPath, tempPathErr := ioutil.TempDir("", temp)
+	tempPath, tempPathErr := ioutil.TempDir("", t.Name())
 	tempFile := tempPath + "/.scuttle.json"
 	currPath, _ := os.Getwd()
 	t.Logf("Using temporary path %v", tempPath)
@@ -56,7 +58,7 @@ func TestEOFKeySequenceText(t *testing.T) {
 
 // Test adding a single secret without a KeyURI
 func TestAddSecretHelperAddSingleNoKeyURI(t *testing.T) {
-	tempPath, currPath, tempFile := testContextSetup("TestAddSecretHelperAddSingle", t)
+	tempPath, currPath, tempFile := testContextSetup(t)
 	defer testContextSwitch(t, tempPath, currPath)
 
 	hush := Secret{
@@ -67,35 +69,20 @@ func TestAddSecretHelperAddSingleNoKeyURI(t *testing.T) {
 	}
 
 	err := AddSecret(hush, "", true, tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error during AddSecret: %v", err)
-	}
+	assert.NoError(t, err)
 
 	state, keyURI, err := ReadSecrets(tempFile)
-	if err != nil {
-		t.Error(err)
-	}
-	if keyURI != "" {
-		t.Errorf("Unexpected KeyIdentifier. Wanted: '', Got: %v", keyURI)
-	}
-	if len(state) != 1 {
-		t.Errorf("Unexpected Slice Length, Wanted: 1, Got: %v", len(state))
-	}
-
-	if state[0].Name != "TEST" {
-		t.Errorf("Unexpected Secret Value for Name, Wanted: TEST, Got: %v", state[0].Name)
-	}
-	if state[0].Cyphertext != "TESTCASEADDSECRET" {
-		t.Errorf("Unexpected Value for Cyphertext, Wanted: TESTCASEADDSECRET, Got: %v", state[0].Cyphertext)
-	}
-	if state[0].Encoding != "plain" {
-		t.Errorf("Unexpected Value for Encoding, Wanted: plain, Got: %v", state[0].Encoding)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, "", keyURI)
+	assert.Len(t, state, 1)
+	assert.Equal(t, "TEST", state[0].Name)
+	assert.Equal(t, "TESTCASEADDSECRET", state[0].Cyphertext)
+	assert.Equal(t, "plain", state[0].Encoding)
 }
 
 // Test adding a single secret with a KeyURI
 func TestAddSecretHelperAddSingleWithKeyURI(t *testing.T) {
-	tempPath, currPath, tempFile := testContextSetup("TestAddSecretHelperAddSingle", t)
+	tempPath, currPath, tempFile := testContextSetup(t)
 	defer testContextSwitch(t, tempPath, currPath)
 
 	hush := Secret{
@@ -106,35 +93,20 @@ func TestAddSecretHelperAddSingleWithKeyURI(t *testing.T) {
 	}
 
 	err := AddSecret(hush, "/path/to/key", true, tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error during AddSecret: %v", err)
-	}
+	assert.NoError(t, err)
 
 	state, keyURI, err := ReadSecrets(tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
-	}
-	if len(state) != 1 {
-		t.Errorf("Unexpected Slice Length, Wanted: 1, Got: %v", len(state))
-	}
-
-	if state[0].Name != "TEST" {
-		t.Errorf("Unexpected Secret Value for Name, Wanted: TEST, Got: %v", state[0].Name)
-	}
-	if state[0].Cyphertext != "TESTCASEADDSECRET" {
-		t.Errorf("Unexpected Value for Cyphertext, Wanted: TESTCASEADDSECRET, Got: %v", state[0].Cyphertext)
-	}
-	if state[0].Encoding != "plain" {
-		t.Errorf("Unexpected Value for Encoding, Wanted: plain, Got: %v", state[0].Encoding)
-	}
-	if keyURI != "/path/to/key" {
-		t.Errorf("Unexpected value for keyURI, Wanted: /google/keys/somekey, Got: %v", keyURI)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, "/path/to/key", keyURI)
+	assert.Len(t, state, 1)
+	assert.Equal(t, "TEST", state[0].Name)
+	assert.Equal(t, "TESTCASEADDSECRET", state[0].Cyphertext)
+	assert.Equal(t, "plain", state[0].Encoding)
 }
 
 // Test adding a secret to the v2 envelope, and rotating it
 func TestAddSecretHelperRotation(t *testing.T) {
-	tempPath, currPath, tempFile := testContextSetup("TestAddSecretHelperRotation", t)
+	tempPath, currPath, tempFile := testContextSetup(t)
 
 	defer testContextSwitch(t, tempPath, currPath)
 
@@ -146,48 +118,30 @@ func TestAddSecretHelperRotation(t *testing.T) {
 	}
 
 	err := AddSecret(hush, "/google/keys/somekey", true, tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error during AddSecret: %v", err)
-	}
+	assert.NoError(t, err)
 
 	state, keyURI, err := ReadSecrets(tempFile)
-	if len(state) != 1 {
-		t.Errorf("Unexpected Slice Length, Wanted: 1, Got: %v", len(state))
-	}
-	if keyURI != "/google/keys/somekey" {
-		t.Errorf("Unexpected value for keyURI, Wanted: /google/keys/somekey, Got: %v", keyURI)
-	}
-	if err != nil {
-		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
-	}
+	assert.NoError(t, err)
+	assert.Len(t, state, 1)
+	assert.Equal(t, "/google/keys/somekey", keyURI)
 
 	// Now actually rotate the entry
 	hush.Cyphertext = "UpdatedCyphertext"
 	err = AddSecret(hush, "/google/keys/somekey", true, tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error during AddSecret: %v", err)
-	}
+	assert.NoError(t, err)
 
 	// re-evaluate the serialized data recalled from disk and inspect for variant behavior
 	state, keyURI, err = ReadSecrets(tempFile)
-	if len(state) != 1 {
-		t.Errorf("Unexpected Slice Length, Wanted: 1, Got: %v", len(state))
-	}
-	if keyURI != "/google/keys/somekey" {
-		t.Errorf("Unexpected value for keyURI, Wanted: /google/keys/somekey, Got: %v", keyURI)
-	}
-	if state[0].Cyphertext != "UpdatedCyphertext" {
-		t.Errorf("Unexpected value for Cyphertext, Wanted: UpdatedCyphertext, Got: %v", state[0].Cyphertext)
-	}
-	if err != nil {
-		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
-	}
+	assert.NoError(t, err)
+	assert.Len(t, state, 1)
+	assert.Equal(t, "/google/keys/somekey", keyURI)
+	assert.Equal(t, "UpdatedCyphertext", state[0].Cyphertext)
 }
 
 // Test adding a secret without a KeyURI embedded in the envelope (or phaux v1 support using the v2 object)
 // and then rotate that entry and key the file.
 func TestAddSecretHelperPartialV2UpdateSupport(t *testing.T) {
-	tempPath, currPath, tempFile := testContextSetup("TestAddSecretHelperPartialV2UpdateSupport", t)
+	tempPath, currPath, tempFile := testContextSetup(t)
 
 	defer testContextSwitch(t, tempPath, currPath)
 
@@ -199,44 +153,28 @@ func TestAddSecretHelperPartialV2UpdateSupport(t *testing.T) {
 	}
 
 	err := AddSecret(hush, "", true, tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error during AddSecret: %v", err)
-	}
+	assert.NoError(t, err)
 
 	state, keyURI, err := ReadSecrets(tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
-	}
-	if len(state) != 1 {
-		t.Errorf("Unexpected Slice Length, Wanted: 1, Got: %v", len(state))
-	}
-	if keyURI != "" {
-		t.Errorf("Unexpected value for keyURI, Wanted: '', Got: %v", keyURI)
-	}
+	assert.NoError(t, err)
+	assert.Len(t, state, 1)
+	assert.Equal(t, "", keyURI)
 
 	// Now actually rotate the entry
 	hush.Cyphertext = "UpdatedCyphertext"
 	// Note that we re-key the envelope here, silently.
 	err = AddSecret(hush, "/google/keys/somekey", true, tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error during AddSecret: %v", err)
-	}
+	assert.NoError(t, err)
 
 	// re-evaluate the serialized data recalled from disk and inspect for variant behavior
 	state, keyURI, err = ReadSecrets(tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
-	}
-	if len(state) != 1 {
-		t.Errorf("Unexpected Slice Length, Wanted: 1, Got: %v", len(state))
-	}
-	if keyURI != "/google/keys/somekey" {
-		t.Errorf("Unexpected value for keyURI, Wanted: /google/keys/somekey, Got: %v", keyURI)
-	}
+	assert.NoError(t, err)
+	assert.Len(t, state, 1)
+	assert.Equal(t, "/google/keys/somekey", keyURI)
 }
 
 func TestAddSecretHelperV1ToV2(t *testing.T) {
-	tempPath, currPath, tempFile := testContextSetup("TestAddSecretHelperV1ToV2", t)
+	tempPath, currPath, tempFile := testContextSetup(t)
 	defer testContextSwitch(t, tempPath, currPath)
 
 	s := Secrets{}
@@ -244,40 +182,25 @@ func TestAddSecretHelperV1ToV2(t *testing.T) {
 
 	v1Writer := NewIOStateManager(tempFile)
 	err := v1Writer.WriteState(s)
-	if err != nil {
-		t.Errorf("Unexpected error during WriteState: %v", err)
-	}
+	assert.NoError(t, err)
 
 	upgrade, keyURI, err := ReadSecrets(tempFile)
-	// Unexpected error? just dump out the error.
-	if err != nil {
-		t.Error(err)
-	}
-	// Did we translate?
-	if len(upgrade) != 1 {
-		t.Errorf("Unexpected V1 Slice Length, Wanted: 1, Got: %v", len(upgrade))
-	}
+	assert.NoError(t, err)
+	assert.Len(t, upgrade, 1)
 
 	// Add a secret
 	err = AddSecret(Secret{Name: "TestV2Upgrade", Cyphertext: "Mango", Created: time.Now(), Encoding: "plain"}, "path/to/key", true, tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error during AddSecret: %v", err)
-	}
+	assert.NoError(t, err)
+
 	// re-evaluate the serialized data recalled from disk and inspect for variant behavior
 	state, keyURI, err := ReadSecrets(tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
-	}
-	if len(state) != 2 {
-		t.Errorf("Unexpected V2 Slice Length, Wanted: 1, Got: %v", len(state))
-	}
-	if keyURI != "path/to/key" {
-		t.Errorf("Unexpected value for keyURI, Wanted: /google/keys/somekey, Got: %v", keyURI)
-	}
+	assert.NoError(t, err)
+	assert.Len(t, state, 2)
+	assert.Equal(t, "path/to/key", keyURI)
 }
 
 func TestMultiEnvelopeSamePath(t *testing.T) {
-	tempPath, currPath, tempFile := testContextSetup("TestMultiEnvelopeSamePath", t)
+	tempPath, currPath, tempFile := testContextSetup(t)
 	defer testContextSwitch(t, tempPath, currPath)
 
 	s := Secrets{}
@@ -293,25 +216,15 @@ func TestMultiEnvelopeSamePath(t *testing.T) {
 
 	defaultWriter := NewIOStateManager(tempFile)
 	err := defaultWriter.WriteState(s)
-	if err != nil {
-		t.Errorf("Unexpected error during WriteState: %v", err)
-	}
+	assert.NoError(t, err)
 
 	err = AddSecret(hush, "", true, tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error during AddSecret: %v", err)
-	}
+	assert.NoError(t, err)
 
 	state, keyURI, err := ReadSecrets(tempFile)
-	if err != nil {
-		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
-	}
-	if len(state) != 1 {
-		t.Errorf("Unexpected Slice Length, Wanted: 1, Got: %v", len(state))
-	}
-	if keyURI != "" {
-		t.Errorf("Unexpected value for keyURI, Wanted: '', Got: %v", keyURI)
-	}
+	assert.NoError(t, err)
+	assert.Len(t, state, 1)
+	assert.Equal(t, "", keyURI)
 
 	// Now add another envelope in the same path, and perform the same operations on another file
 	hush = Secret{
@@ -327,24 +240,16 @@ func TestMultiEnvelopeSamePath(t *testing.T) {
 	extraWriter.WriteState(s)
 
 	state, keyURI, err = ReadSecrets(extraFile)
-	if err != nil {
-		t.Errorf("Unexpected error when attempting to ReadSecrets. Got: %v", err)
-	}
-	if len(state) != 2 {
-		t.Errorf("Unexpected Slice Length, Wanted: 2, Got: %v", len(state))
-	}
-	if keyURI != "" {
-		t.Errorf("Unexpected value for keyURI, Wanted: '', Got: %v", keyURI)
-	}
-
+	assert.NoError(t, err)
+	assert.Len(t, state, 2)
+	assert.Equal(t, "", keyURI)
 }
 
 // Successfully load the contents of an envelope.
 func TestLoadEnvelope(t *testing.T) {
 	tempPath, err := ioutil.TempDir("", t.Name())
-	if err != nil {
-		t.Errorf("error during test setup: %v", err)
-	}
+	assert.NoError(t, err)
+
 	defer os.RemoveAll(tempPath)
 	tempFile := filepath.Join(tempPath, ".scuttle.json")
 
@@ -356,83 +261,56 @@ func TestLoadEnvelope(t *testing.T) {
 	}
 
 	err = AddSecret(hush, "", true, tempFile)
-	if err != nil {
-		t.Errorf("error during test setup: failed to AddSecret: %v", err)
-	}
+	assert.NoError(t, err)
 
 	envelope, err := LoadEnvelope(tempFile)
-	if err != nil {
-		t.Errorf("got unexpected error for LoadEnvelope: %v", err)
-	}
-	if envelope.Filepath != "" {
-		t.Errorf("got unexpected value for envelope.Filepath: want=%v got=%v", "", envelope.Filepath)
-	}
-	if envelope.KeyIdentifier != "" {
-		t.Errorf("got unexpected value for envelope.KeyIdentifier: want=%v got=%v", "", envelope.KeyIdentifier)
-	}
-	if envelope.Version != "2" {
-		t.Errorf("got unexpected value for envelope.Version: want=%v got=%v", "2", envelope.Version)
-	}
-	if len(envelope.Secrets) != 1 {
-		t.Errorf("got unexpected size for envelope.Secrets: want=%v got=%v", 1, len(envelope.Secrets))
-	}
+	assert.NoError(t, err)
+	assert.Len(t, envelope.Secrets, 1)
+	assert.Equal(t, "", envelope.Filepath)
+	assert.Equal(t, "", envelope.KeyIdentifier)
+	assert.Equal(t, "2", envelope.Version)
 }
 
 // Fail to load because of an error with the provided path.
 func TestLoadEnvelopeBadPath(t *testing.T) {
 	_, err := LoadEnvelope("path/does/not/exist")
-	if err == nil {
-		t.Error("expected error, but got nil")
-	}
+	assert.Error(t, err)
 }
 
 // Fail to load because we are unable to read the file state correctly.
 func TestLoadEnvelopeBadFileData(t *testing.T) {
 	tempPath, err := ioutil.TempDir("", t.Name())
-	if err != nil {
-		t.Errorf("error during test setup: %v", err)
-	}
+	assert.NoError(t, err)
+
 	defer os.RemoveAll(tempPath)
 	tempFile := filepath.Join(tempPath, ".scuttle.json")
 
-	if err := ioutil.WriteFile(tempFile, []byte("invalid data"), 0777); err != nil {
-		t.Errorf("error during test setup: %v", err)
-	}
+	err = ioutil.WriteFile(tempFile, []byte("invalid data"), 0777)
+	assert.NoError(t, err)
 
 	_, err = LoadEnvelope(tempFile)
-	if err == nil {
-		t.Error("expected error, but got nil")
-	}
+	assert.Error(t, err)
 }
 
 // The envelope path does not resolve to a file/directory.
 func TestGetEnvelopePathDoesNotExist(t *testing.T) {
 	path, err := getEnvelopePath("path/does/not/exist")
-	if err == nil {
-		t.Error("expected error, but got nil")
-	}
-	if path != "" {
-		t.Errorf("expected empty string, but got: %v", path)
-	}
+	assert.Error(t, err)
+	assert.Equal(t, "", path)
 }
 
 // The envelope path is empty and should resolve to the default file.
 func TestGetEnvelopePathDefaultFile(t *testing.T) {
 	path, err := getEnvelopePath("")
-	if err != nil {
-		t.Errorf("unexpected error for getEnvelopePath: %v", err)
-	}
-	if path != ".scuttle.json" {
-		t.Errorf("unexpected path returned from getEnvelopePath: expected=.scuttle.json actual=%v", path)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, ".scuttle.json", path)
 }
 
 // The envelope path is a directory and should get the default file appended.
 func TestGetEnvelopePathDirectory(t *testing.T) {
 	tempPath, err := ioutil.TempDir("", t.Name())
-	if err != nil {
-		t.Errorf("error during test setup: %v", err)
-	}
+	assert.NoError(t, err)
+
 	defer os.RemoveAll(tempPath)
 	tempFile := filepath.Join(tempPath, ".scuttle.json")
 
@@ -444,25 +322,18 @@ func TestGetEnvelopePathDirectory(t *testing.T) {
 	}
 
 	err = AddSecret(hush, "", true, tempFile)
-	if err != nil {
-		t.Errorf("error during test setup: failed to AddSecret: %v", err)
-	}
+	assert.NoError(t, err)
 
 	path, err := getEnvelopePath(tempPath)
-	if err != nil {
-		t.Errorf("unexpected error for getEnvelopePath: %v", err)
-	}
-	if path != tempFile {
-		t.Errorf("unexpected path returned from getEnvelopePath: expected=%v actual=%v", tempFile, path)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, tempFile, path)
 }
 
 // The envelope path specifies an existing file.
 func TestGetEnvelopePathFullPath(t *testing.T) {
 	tempPath, err := ioutil.TempDir("", t.Name())
-	if err != nil {
-		t.Errorf("error during test setup: %v", err)
-	}
+	assert.NoError(t, err)
+
 	defer os.RemoveAll(tempPath)
 	tempFile := filepath.Join(tempPath, ".scuttle.json")
 
@@ -474,15 +345,9 @@ func TestGetEnvelopePathFullPath(t *testing.T) {
 	}
 
 	err = AddSecret(hush, "", true, tempFile)
-	if err != nil {
-		t.Errorf("error during test setup: failed to AddSecret: %v", err)
-	}
+	assert.NoError(t, err)
 
 	path, err := getEnvelopePath(tempFile)
-	if err != nil {
-		t.Errorf("unexpected error for getEnvelopePath: %v", err)
-	}
-	if path != tempFile {
-		t.Errorf("unexpected path returned from getEnvelopePath: expected=%v actual=%v", tempFile, path)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, tempFile, path)
 }

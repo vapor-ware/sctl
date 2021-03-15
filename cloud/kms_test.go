@@ -6,6 +6,8 @@ import (
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const defaultTestKey = "projects/vapor-staging/locations/us/keyRings/sctl/cryptoKeys/sctl-dev"
@@ -33,18 +35,9 @@ func TestGCPKMSEncryptDecryptIntegration(t *testing.T) {
 	}
 
 	cypher, err := client.Encrypt([]byte("hello"))
-	if err != nil {
-		t.Fatalf("Unexpected error. Wanted: nil Got: %s", err)
-	}
+	assert.NoError(t, err)
 
 	decrypted, err := client.Decrypt(cypher)
-
-	if err != nil {
-		t.Fatalf("Unexpected error. Wanted: nil Got: %s", err)
-	}
-
-	if reflect.DeepEqual(decrypted, []byte("hello")) != true {
-		t.Fatalf("Unexpected value. Wanted: hello Got: %s", err)
-	}
-
+	assert.NoError(t, err)
+	assert.True(t, reflect.DeepEqual(decrypted, []byte("hello")))
 }
