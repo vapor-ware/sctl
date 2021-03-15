@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,8 @@ func eofKeySequenceText() string {
 func AddSecret(toAdd Secret, keyURI string, keyCheck bool, envelope string) error {
 	stateFile := V2{Filepath: envelope}
 	stateFile.KeyIdentifier = keyURI
-	nvl := NewVersionedLoader(envelope)
 
-	contents, err := nvl.ReadState()
+	contents, err := LoadEnvelope(envelope)
 	if err != nil {
 		// First run case with FileNotFound exception. Mask this and save
 		if os.IsNotExist(err) {
@@ -99,29 +99,58 @@ func AddSecret(toAdd Secret, keyURI string, keyCheck bool, envelope string) erro
 // ReadSecrets is a Wrapper to return an array of Secrets for processing
 // Along with any KeyIdentifier found in the envelope for decryption
 func ReadSecrets(envelope string) (Secrets, string, error) {
-	nvl := NewVersionedLoader(envelope)
-
-	contents, err := nvl.ReadState()
-	// First run case with FileNotFound exception. Mask this and return empty placeholders
-	if os.IsNotExist(err) {
-		return Secrets{}, "", nil
-	}
+	contents, err := LoadEnvelope(envelope)
 	if err != nil {
+		// First run case with FileNotFound exception. Mask this and return empty placeholders
+		if os.IsNotExist(err) {
+			return Secrets{}, "", nil
+		}
 		return nil, "", errors.Wrap(err, "failed parsing all known envelope formats")
 	}
+
 	return contents.Secrets, contents.KeyIdentifier, nil
 }
 
 // DeleteSecret is a Wrapper to remove a secret from state
 // toRemove - string - named key of the secret to eject from the state storage
 func DeleteSecret(toRemove string, envelope string) error {
-	nvl := NewVersionedLoader(envelope)
-
-	contents, err := nvl.ReadState()
+	contents, err := LoadEnvelope(envelope)
 	if err != nil {
 		return errors.Wrap(err, "failed parsing all known envelope formats - refusing to remove secret")
 	}
+
 	contents.Secrets.Remove(toRemove)
 	contents.Filepath = envelope
 	return contents.Save()
+}
+
+// LoadEnvelope loads the scuttle envelope JSON into a V2 config struct.
+//
+// The `path` parameter may be either the path to the envelope file (e.g. .scuttle.json)
+// or it may be the path to a directory containing the envelope file.
+func LoadEnvelope(path string) (V2, error) {
+	envelope, err := getEnvelopePath(path)
+	if err != nil {
+		return V2{}, err
+	}
+
+	loader := NewVersionedLoader(envelope)
+	return loader.ReadState()
+}
+
+// getEnvelopePath is a helper function to get the path to the envelope file. The file
+// may be referenced directly, by containing directory, or as assumed default.
+func getEnvelopePath(path string) (string, error) {
+	if path == "" {
+		return defaultFile, nil
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return "", err
+	}
+	if info.IsDir() {
+		path = filepath.Join(path, defaultFile)
+	}
+	return path, nil
 }

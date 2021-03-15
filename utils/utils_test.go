@@ -3,6 +3,7 @@ package utils
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
@@ -336,4 +337,152 @@ func TestMultiEnvelopeSamePath(t *testing.T) {
 		t.Errorf("Unexpected value for keyURI, Wanted: '', Got: %v", keyURI)
 	}
 
+}
+
+// Successfully load the contents of an envelope.
+func TestLoadEnvelope(t *testing.T) {
+	tempPath, err := ioutil.TempDir("", t.Name())
+	if err != nil {
+		t.Errorf("error during test setup: %v", err)
+	}
+	defer os.RemoveAll(tempPath)
+	tempFile := filepath.Join(tempPath, ".scuttle.json")
+
+	hush := Secret{
+		Name:       "TEST",
+		Cyphertext: "TESTCASEADDSECRET",
+		Created:    time.Now(),
+		Encoding:   "plain",
+	}
+
+	err = AddSecret(hush, "", true, tempFile)
+	if err != nil {
+		t.Errorf("error during test setup: failed to AddSecret: %v", err)
+	}
+
+	envelope, err := LoadEnvelope(tempFile)
+	if err != nil {
+		t.Errorf("got unexpected error for LoadEnvelope: %v", err)
+	}
+	if envelope.Filepath != "" {
+		t.Errorf("got unexpected value for envelope.Filepath: want=%v got=%v", "", envelope.Filepath)
+	}
+	if envelope.KeyIdentifier != "" {
+		t.Errorf("got unexpected value for envelope.KeyIdentifier: want=%v got=%v", "", envelope.KeyIdentifier)
+	}
+	if envelope.Version != "2" {
+		t.Errorf("got unexpected value for envelope.Version: want=%v got=%v", "2", envelope.Version)
+	}
+	if len(envelope.Secrets) != 1 {
+		t.Errorf("got unexpected size for envelope.Secrets: want=%v got=%v", 1, len(envelope.Secrets))
+	}
+}
+
+// Fail to load because of an error with the provided path.
+func TestLoadEnvelopeBadPath(t *testing.T) {
+	_, err := LoadEnvelope("path/does/not/exist")
+	if err == nil {
+		t.Error("expected error, but got nil")
+	}
+}
+
+// Fail to load because we are unable to read the file state correctly.
+func TestLoadEnvelopeBadFileData(t *testing.T) {
+	tempPath, err := ioutil.TempDir("", t.Name())
+	if err != nil {
+		t.Errorf("error during test setup: %v", err)
+	}
+	defer os.RemoveAll(tempPath)
+	tempFile := filepath.Join(tempPath, ".scuttle.json")
+
+	if err := ioutil.WriteFile(tempFile, []byte("invalid data"), 0777); err != nil {
+		t.Errorf("error during test setup: %v", err)
+	}
+
+	_, err = LoadEnvelope(tempFile)
+	if err == nil {
+		t.Error("expected error, but got nil")
+	}
+}
+
+// The envelope path does not resolve to a file/directory.
+func TestGetEnvelopePathDoesNotExist(t *testing.T) {
+	path, err := getEnvelopePath("path/does/not/exist")
+	if err == nil {
+		t.Error("expected error, but got nil")
+	}
+	if path != "" {
+		t.Errorf("expected empty string, but got: %v", path)
+	}
+}
+
+// The envelope path is empty and should resolve to the default file.
+func TestGetEnvelopePathDefaultFile(t *testing.T) {
+	path, err := getEnvelopePath("")
+	if err != nil {
+		t.Errorf("unexpected error for getEnvelopePath: %v", err)
+	}
+	if path != ".scuttle.json" {
+		t.Errorf("unexpected path returned from getEnvelopePath: expected=.scuttle.json actual=%v", path)
+	}
+}
+
+// The envelope path is a directory and should get the default file appended.
+func TestGetEnvelopePathDirectory(t *testing.T) {
+	tempPath, err := ioutil.TempDir("", t.Name())
+	if err != nil {
+		t.Errorf("error during test setup: %v", err)
+	}
+	defer os.RemoveAll(tempPath)
+	tempFile := filepath.Join(tempPath, ".scuttle.json")
+
+	hush := Secret{
+		Name:       "TEST",
+		Cyphertext: "TESTCASEADDSECRET",
+		Created:    time.Now(),
+		Encoding:   "plain",
+	}
+
+	err = AddSecret(hush, "", true, tempFile)
+	if err != nil {
+		t.Errorf("error during test setup: failed to AddSecret: %v", err)
+	}
+
+	path, err := getEnvelopePath(tempPath)
+	if err != nil {
+		t.Errorf("unexpected error for getEnvelopePath: %v", err)
+	}
+	if path != tempFile {
+		t.Errorf("unexpected path returned from getEnvelopePath: expected=%v actual=%v", tempFile, path)
+	}
+}
+
+// The envelope path specifies an existing file.
+func TestGetEnvelopePathFullPath(t *testing.T) {
+	tempPath, err := ioutil.TempDir("", t.Name())
+	if err != nil {
+		t.Errorf("error during test setup: %v", err)
+	}
+	defer os.RemoveAll(tempPath)
+	tempFile := filepath.Join(tempPath, ".scuttle.json")
+
+	hush := Secret{
+		Name:       "TEST",
+		Cyphertext: "TESTCASEADDSECRET",
+		Created:    time.Now(),
+		Encoding:   "plain",
+	}
+
+	err = AddSecret(hush, "", true, tempFile)
+	if err != nil {
+		t.Errorf("error during test setup: failed to AddSecret: %v", err)
+	}
+
+	path, err := getEnvelopePath(tempFile)
+	if err != nil {
+		t.Errorf("unexpected error for getEnvelopePath: %v", err)
+	}
+	if path != tempFile {
+		t.Errorf("unexpected path returned from getEnvelopePath: expected=%v actual=%v", tempFile, path)
+	}
 }
