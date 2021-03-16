@@ -268,9 +268,8 @@ func BuildContextualMenu() []cli.Command {
 			},
 		},
 		{
-			Name:  "list",
-			Usage: "List known secrets",
-
+			Name:     "list",
+			Usage:    "List known secrets",
 			Category: statecategory,
 			Flags: []cli.Flag{
 				cli.StringFlag{
