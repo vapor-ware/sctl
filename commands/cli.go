@@ -311,6 +311,10 @@ func BuildContextualMenu() []cli.Command {
 					Usage:  "Filepath to envelope",
 					Value:  ".scuttle.json",
 				},
+				cli.BoolFlag{
+					Name:  "no-decode",
+					Usage: "When reading the secret, do not base64 decode",
+				},
 			},
 			Action: func(c *cli.Context) error {
 				// read context check only cares about the argument as a parameter
@@ -367,6 +371,14 @@ func BuildContextualMenu() []cli.Command {
 				cypher, err := client.Decrypt(decoded)
 				if err != nil {
 					return errors.Wrap(err, "failed secret decrypt")
+				}
+
+				// short-circuit the base64 decoding and return our base64 encoded cyphertext by request
+				// of the user.
+				if c.Bool("no-decode") {
+					log.Debugf("skipping decode of %v due to --no-decode", locatedSecret.Name)
+					fmt.Println(string(cypher))
+					return nil
 				}
 
 				// switch output if encoding == base64
