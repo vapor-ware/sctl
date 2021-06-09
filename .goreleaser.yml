@@ -15,12 +15,14 @@ builds:
   - linux
   - darwin
   - windows
+  goarch:
+  - amd64
+  - arm64
 archives:
 - replacements:
     darwin: Darwin
     linux: Linux
     windows: Windows
-    386: i386
     amd64: x86_64
 release:
   github:
@@ -39,7 +41,8 @@ dockers:
     - vaporio/sctl:{{ .Major }}
     - vaporio/sctl:latest
 brews:
-- github:
+- name: github
+  tap:
     owner: vapor-ware
     name: homebrew-formula
   commit_author:
