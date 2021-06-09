@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 // Include this shared CI repository to load script helpers and libraries.
-library identifier: 'vapor@1.4.0', retriever: modernSCM([
+library identifier: 'vapor@1.12.0', retriever: modernSCM([
   $class: 'GitSCMSource',
   remote: 'https://github.com/vapor-ware/ci-shared.git',
   credentialsId: 'vio-bot-gh',
@@ -11,4 +11,5 @@ golangPipeline([
   'image': 'vaporio/sctl',
   'skipIntegrationTest': true,
   'skipSetup': true,
+  'goVersion': '1.16',
 ])
