@@ -34,12 +34,10 @@ release:
 dockers:
 - goos: linux
   goarch: amd64
-  binaries:
-    - sctl
   image_templates:
-    - vaporio/sctl:{{ .Tag }}
-    - vaporio/sctl:{{ .Major }}
-    - vaporio/sctl:latest
+    - docker.io/vaporio/sctl:{{ .Tag }}
+    - docker.io/vaporio/sctl:{{ .Major }}
+    - docker.io/vaporio/sctl:latest
 brews:
 - name: github
   tap:
