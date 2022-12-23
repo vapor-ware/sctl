@@ -2,10 +2,14 @@ package credentials
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 
@@ -148,7 +152,7 @@ func (gc GoogleCredential) formatCredential(token *oauth2.Token, rawClientData [
 
 // Login initiates a CLI workflow to authenticate the user with offline credentials limited to
 // the KMS scope
-func (gc GoogleCredential) Login(c utils.Configuration, credentialName string) error {
+func (gc GoogleCredential) Login(c utils.Configuration, credentialName string, port int) error {
 	err := gc.ValidateContext()
 	if err != nil {
 		log.Printf("Configuration issue detected. %v", err)
@@ -161,7 +165,7 @@ func (gc GoogleCredential) Login(c utils.Configuration, credentialName string) e
 		return err
 	}
 	// Initiate login sequence
-	tok, err := gc.getToken(config)
+	tok, err := gc.getToken(config, port)
 	if err != nil {
 		return err
 	}
@@ -172,16 +176,39 @@ func (gc GoogleCredential) Login(c utils.Configuration, credentialName string) e
 	return gc.SaveCredential(credentialName, userToken)
 }
 
-func (gc GoogleCredential) getToken(config *oauth2.Config) (*oauth2.Token, error) {
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+func (gc GoogleCredential) getToken(config *oauth2.Config, port int) (*oauth2.Token, error) {
+
+	b := make([]byte, 16)
+	rand.Read(b)
+	state := base64.URLEncoding.EncodeToString(b)
+
+	authURL := config.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	var authCode string
+
+	// Spin up a temporary http server
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		authCode = r.URL.Query().Get("code")
+		if authCode != "" && r.URL.Query().Get("state") == state {
+			// We could make this prettier, with some html/css?
+			fmt.Fprintln(w, "Authorization successful. You can close this window and return to sctl.")
+			wg.Done()
+		}
+	})
+
+	go func() {
+		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+	}()
+
 	fmt.Printf("Go to the following link in your browser then type the "+
 		"authorization code: \n%v\n", authURL)
 
-	var authCode string
-	if _, err := fmt.Scan(&authCode); err != nil {
-		return nil, errors.Wrap(err, "unable to read authorization code")
-	}
+	// wait for the user to visit the url and go through the oauth flow
+	wg.Wait()
 
+	// need to get the token from the server
 	tok, err := config.Exchange(context.TODO(), authCode)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to retrieve token from web")
