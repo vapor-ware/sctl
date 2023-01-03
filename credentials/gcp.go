@@ -116,8 +116,10 @@ func (gc GoogleCredential) JSON() ([]byte, error) {
 	tok, err := gc.GetCredential("default")
 	if err != nil {
 		log.Warn("Unable to locate credentials. Have you run `sctl credential add`?")
-		log.Warn("Another common issue is if running in a headless environment, where sctl expects"+
-			" to be invoked with %s environment variable set.", CredentialVar)
+		log.WithFields(log.Fields{
+			"key": CredentialVar,
+		  }).Warn("Another common issue is if running in a headless environment, where sctl expects"+
+		  " to be invoked with an environment variable set.")
 		return []byte{}, err
 	}
 	return json.Marshal(tok)
