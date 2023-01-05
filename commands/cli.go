@@ -151,6 +151,14 @@ func BuildContextualMenu() []cli.Command {
 				{
 					Name:  "add",
 					Usage: "Add a default credential",
+					Flags: []cli.Flag{
+						cli.IntFlag{
+							Name:  "port",
+							Usage: "The port to listen on for the oauth callback",
+							Value: 9999,
+						},
+					},
+
 					Action: func(c *cli.Context) error {
 						var cred credentials.GoogleCredential
 						conf, err := utils.ReadConfiguration()
@@ -173,7 +181,9 @@ func BuildContextualMenu() []cli.Command {
 							conf.GoogleClient = utils.Client{Data: string(clientData)}
 						}
 
-						err = cred.Login(conf, "default")
+						port := c.Int("port")
+
+						err = cred.Login(conf, "default", port)
 						if err != nil {
 							return err
 						}

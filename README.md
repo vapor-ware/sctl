@@ -77,7 +77,7 @@ You can configure sctl's authentication in one of two ways.
 
 1) `GOOGLE_APPLICATION_CREDENTIALS` - via env. You set this environment variable to a filepath containing your credentials. Which can be any serviceAccount or authorized User for example.
 
-2) `sctl credential add` will prompt you for a client configuration JSON. Ask your sctl administrator to provide this value if you're unsure what to enter. Once input, a link will be output to your terminal to visit. Open the link, log in to google, and Grant sctl's KMS scope authentication request. Copy/paste the resulting authorization code back into your terminal.
+2) `sctl credential add` will prompt you for a client configuration JSON. Ask your sctl administrator to provide this value if you're unsure what to enter. Once input, a link will be output to your terminal to visit. Open the link, log in to google, and Grant sctl's KMS scope authentication request. This will redirect you to a temporary http server which will finish your authentication.
 
 #### Key Configuration
 
