@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"runtime"
@@ -63,6 +63,9 @@ func BuildContextualMenu() []cli.Command {
 				var keyURI string
 
 				_, keyURI, err = utils.ReadSecrets(c.String("envelope"))
+				if err != nil {
+					return err
+				}
 
 				var plaintext []byte
 
@@ -670,7 +673,7 @@ func stdinScan() ([]byte, error) {
 	}
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		// we presume data is being piped to stdin
-		rawInput, err := ioutil.ReadAll(os.Stdin)
+		rawInput, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			return nil, err
 		}

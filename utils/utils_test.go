@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -14,7 +13,7 @@ import (
 // Test Case Setup
 func testContextSetup(t *testing.T) (string, string, string) {
 	// Test New Secret in New Context
-	tempPath, tempPathErr := ioutil.TempDir("", t.Name())
+	tempPath, tempPathErr := os.MkdirTemp("", t.Name())
 	tempFile := tempPath + "/.scuttle.json"
 	currPath, _ := os.Getwd()
 	t.Logf("Using temporary path %v", tempPath)
@@ -184,7 +183,7 @@ func TestAddSecretHelperV1ToV2(t *testing.T) {
 	err := v1Writer.WriteState(s)
 	assert.NoError(t, err)
 
-	upgrade, keyURI, err := ReadSecrets(tempFile)
+	upgrade, _, err := ReadSecrets(tempFile)
 	assert.NoError(t, err)
 	assert.Len(t, upgrade, 1)
 
@@ -247,7 +246,7 @@ func TestMultiEnvelopeSamePath(t *testing.T) {
 
 // Successfully load the contents of an envelope.
 func TestLoadEnvelope(t *testing.T) {
-	tempPath, err := ioutil.TempDir("", t.Name())
+	tempPath, err := os.MkdirTemp("", t.Name())
 	assert.NoError(t, err)
 
 	defer os.RemoveAll(tempPath)
@@ -279,13 +278,13 @@ func TestLoadEnvelopeBadPath(t *testing.T) {
 
 // Fail to load because we are unable to read the file state correctly.
 func TestLoadEnvelopeBadFileData(t *testing.T) {
-	tempPath, err := ioutil.TempDir("", t.Name())
+	tempPath, err := os.MkdirTemp("", t.Name())
 	assert.NoError(t, err)
 
 	defer os.RemoveAll(tempPath)
 	tempFile := filepath.Join(tempPath, ".scuttle.json")
 
-	err = ioutil.WriteFile(tempFile, []byte("invalid data"), 0777)
+	err = os.WriteFile(tempFile, []byte("invalid data"), 0777)
 	assert.NoError(t, err)
 
 	_, err = LoadEnvelope(tempFile)
@@ -308,7 +307,7 @@ func TestGetEnvelopePathDefaultFile(t *testing.T) {
 
 // The envelope path is a directory and should get the default file appended.
 func TestGetEnvelopePathDirectory(t *testing.T) {
-	tempPath, err := ioutil.TempDir("", t.Name())
+	tempPath, err := os.MkdirTemp("", t.Name())
 	assert.NoError(t, err)
 
 	defer os.RemoveAll(tempPath)
@@ -331,7 +330,7 @@ func TestGetEnvelopePathDirectory(t *testing.T) {
 
 // The envelope path specifies an existing file.
 func TestGetEnvelopePathFullPath(t *testing.T) {
-	tempPath, err := ioutil.TempDir("", t.Name())
+	tempPath, err := os.MkdirTemp("", t.Name())
 	assert.NoError(t, err)
 
 	defer os.RemoveAll(tempPath)

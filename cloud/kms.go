@@ -46,6 +46,9 @@ func (gkms *GCPKMS) Encrypt(plaintext []byte) ([]byte, error) {
 	ctx := context.Background()
 
 	client, err := gkms.client(ctx)
+	if err != nil {
+		return nil, err
+	}
 	// Build the request.
 	req := &kmspb.EncryptRequest{
 		Name:      gkms.keyname,
@@ -63,6 +66,9 @@ func (gkms *GCPKMS) Encrypt(plaintext []byte) ([]byte, error) {
 func (gkms *GCPKMS) Decrypt(ciphertext []byte) ([]byte, error) {
 	ctx := context.Background()
 	client, err := gkms.client(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	// Build the request.
 	req := &kmspb.DecryptRequest{

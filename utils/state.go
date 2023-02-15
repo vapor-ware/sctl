@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -20,14 +19,14 @@ type StateManager interface {
 	WriteState(Secrets) error
 }
 
-// IOStateManager declares a state manager that uses ioutil to serialize state to disk.
+// IOStateManager declares a state manager that uses os to serialize state to disk.
 type IOStateManager struct {
 	filename string
 }
 
 // ReadState will de-serialize the secrets state from JSON format storage on disk.
 func (ism IOStateManager) ReadState() (Secrets, error) {
-	file, err := ioutil.ReadFile(ism.filename)
+	file, err := os.ReadFile(ism.filename)
 	// Decode the json into a slice of Secret Structs
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -38,7 +37,7 @@ func (ism IOStateManager) ReadState() (Secrets, error) {
 		return nil, err
 	}
 	var data []Secret
-	err = json.Unmarshal([]byte(file), &data)
+	err = json.Unmarshal(file, &data)
 	return data, err
 }
 
@@ -49,7 +48,7 @@ func (ism IOStateManager) WriteState(data Secrets) error {
 		return err
 	}
 	log.Debug(string(jsonData))
-	return ioutil.WriteFile(ism.filename, jsonData, os.FileMode(0660))
+	return os.WriteFile(ism.filename, jsonData, os.FileMode(0660))
 }
 
 // NewIOStateManager is a factory method to initialize an IOStateManager.
@@ -69,7 +68,7 @@ type VersionedLoader struct {
 // the data structure, it will fall back and attempt to initialize a new V2 secret envelope, and populate
 // with what we presume to be a V1 format. If that fails, we fail fatally.
 func (vl VersionedLoader) ReadState() (V2, error) {
-	data, err := ioutil.ReadFile(vl.Filepath)
+	data, err := os.ReadFile(vl.Filepath)
 	if err != nil {
 		return V2{}, err
 	}

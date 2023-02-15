@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"sync"
@@ -96,7 +95,7 @@ func (gc GoogleCredential) GetCredential(credentialName string) (GoogleToken, er
 
 // JSON will attempt to return a byte array representation of a given google credential. This method
 // passively checks for the environment variable GOOGLE_APPLICATION_CREDENTIALS and will short circuit
-// based on this ENV VAR. Otherwise it tries to retreive the default application credentials from the
+// based on this ENV VAR. Otherwise it tries to retrieve the default application credentials from the
 // OS Keystore. If all else fails, it halts execution with helpful messaging on how to possibly correct
 // the issue
 func (gc GoogleCredential) JSON() ([]byte, error) {
@@ -106,7 +105,7 @@ func (gc GoogleCredential) JSON() ([]byte, error) {
 	external, exists := os.LookupEnv(CredentialVar)
 	if exists {
 		log.Debugf("Using env exported %s", CredentialVar)
-		f, err := ioutil.ReadFile(external)
+		f, err := os.ReadFile(external)
 		if err != nil {
 			return []byte{}, errors.Wrapf(err, "Unable to read %s", CredentialVar)
 		}
@@ -118,8 +117,8 @@ func (gc GoogleCredential) JSON() ([]byte, error) {
 		log.Warn("Unable to locate credentials. Have you run `sctl credential add`?")
 		log.WithFields(log.Fields{
 			"key": CredentialVar,
-		  }).Warn("Another common issue is if running in a headless environment, where sctl expects"+
-		  " to be invoked with an environment variable set.")
+		}).Warn("Another common issue is if running in a headless environment, where sctl expects" +
+			" to be invoked with an environment variable set.")
 		return []byte{}, err
 	}
 	return json.Marshal(tok)
@@ -131,7 +130,7 @@ func (gc GoogleCredential) JSON() ([]byte, error) {
 func (gc GoogleCredential) ValidateContext() error {
 	_, isSet := os.LookupEnv(CredentialVar)
 	if isSet {
-		return fmt.Errorf("Environment Variable %s is present, and will prevent sctl from using any user configured credentials", CredentialVar)
+		return fmt.Errorf("environment Variable %s is present, and will prevent sctl from using any user configured credentials", CredentialVar)
 	}
 
 	return nil
