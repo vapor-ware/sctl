@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -62,13 +61,13 @@ func (c *Configuration) Save() error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(c.configFilePath, jsonData, os.FileMode(0600))
+	return os.WriteFile(c.configFilePath, jsonData, os.FileMode(0600))
 }
 
 // Load will load the json from disk and populate the configuration with
 // values restored from the configuration
 func (c *Configuration) Load() error {
-	f, err := ioutil.ReadFile(c.configFilePath)
+	f, err := os.ReadFile(c.configFilePath)
 	if err != nil {
 		return err
 	}
@@ -77,6 +76,9 @@ func (c *Configuration) Load() error {
 
 // Init will generate the configuration path for sctl in the system UserConfigDir
 func (c *Configuration) Init() error {
+	if c.configPath == "" {
+		return nil
+	}
 	return os.MkdirAll(c.configPath, 0775)
 }
 
@@ -84,13 +86,9 @@ func (c *Configuration) Init() error {
 // the serialized data. If an error is encountered processing this operation
 // a blank Configuration struct will be returned.
 func ReadConfiguration() (Configuration, error) {
-	// FIXME (etd): I believe there is a bug here. `c` is an empty Configuration that does
-	//	not have a configPath set, so nothing would ever happen when Init is called?
 	c := Configuration{}
 	if err := c.Init(); err != nil {
-		// FIXME (etd) - It seems like we should return the error here, but that causes existing
-		// 	tests to fail, so for now, just commenting out the error return.
-		//return c, err
+		return c, err
 	}
 
 	osConfigDir, _ := os.UserConfigDir()

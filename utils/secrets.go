@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -14,12 +13,12 @@ import (
 //
 // An example JSON-serialized secret:
 //
-//    {
-//      "name": "A_SECRET",
-//      "cypher": "0xD34DB33F",
-//      "created": "2019-05-01 13:01:27.189242799 -0500 CDT m=+0.000075907",
-//      "encoding": "plain"
-//     }
+//	{
+//	  "name": "A_SECRET",
+//	  "cypher": "0xD34DB33F",
+//	  "created": "2019-05-01 13:01:27.189242799 -0500 CDT m=+0.000075907",
+//	  "encoding": "plain"
+//	 }
 type Secret struct {
 	Name       string    `json:"name"`
 	Cyphertext string    `json:"cypher"`
@@ -109,7 +108,7 @@ func (s V2) GetVersion() string {
 // Load will attempt to parse the indicated Filepath from the V2 object and populate the struct
 // for processing. This function is mostly for test cases and rapidly instantiating a v2 envelope.
 func (s *V2) Load() error {
-	file, err := ioutil.ReadFile(s.Filepath)
+	file, err := os.ReadFile(s.Filepath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Warn("No scuttle state file found. Initializing empty envelope")
@@ -126,7 +125,7 @@ func (s *V2) Load() error {
 }
 
 // Save will attempt to serialize the entirety of the V2 object to a statefile on disk indicated by the
-// Filepath paramter on the V2 object.
+// Filepath parameter on the V2 object.
 func (s *V2) Save() error {
 	if s.Version == "" {
 		s.Version = "2"
@@ -139,5 +138,5 @@ func (s *V2) Save() error {
 		return err
 	}
 	mode := int(0660) // file mode
-	return ioutil.WriteFile(s.Filepath, jsonData, os.FileMode(mode))
+	return os.WriteFile(s.Filepath, jsonData, os.FileMode(mode))
 }
